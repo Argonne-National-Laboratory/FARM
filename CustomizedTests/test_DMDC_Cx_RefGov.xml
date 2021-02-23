@@ -1,0 +1,172 @@
+<Simulation verbosity="silent">
+  <TestInfo>
+    <name>plugins/RefGov/tests/test_DMDC_Cx_RefGov.xml</name>
+    <author>haoyuwang</author>
+    <created>2020-07-30</created>
+    <classesTested>
+		SupervisedLearning.DynamicModeDecomposition.DynamicModeDecompositionControl, 
+		plugins.RefGov.RefGov_SIMO
+	</classesTested>
+    <description>
+		This test is aimed to demonstrate 2 major steps:
+			1-a. DMDC load the csv file containing U, Y, and X ("TrainDataFile");
+			1-b. DMDC calculate the state-space representation A,B,C matrices using DMDC; 
+			1-c. DMDC write key information to XML file ("DMDcCxCoeff.xml");
+			2-a. RefGov read the DMDC information from XML file;
+			2-b. RefGov receive a setpoint "P1" from MonteCarlo sampler;
+			2-c. RefGov calculate the adjusted setpoint "V1" based on the last 
+			2-d. RefGov write "P1, V1, V1min, V1max" to csv file ("RefGovOutput.csv")     
+    </description>
+    <revisions>
+      <revision author="haoyuwang" date="2020-06-17">Creating the DMDC test</revision>
+	  <revision author="haoyuwang" date="2020-07-27">Adding C matrix Calculation and return final X vector</revision>
+	  <revision author="haoyuwang" date="2020-07-30">Adding RefGov </revision>
+    </revisions>
+    <requirements>
+		RefGov plugin, 
+		mofidied SupervisedLearning.DynamicModeDecomposition
+	</requirements>
+  </TestInfo>
+
+  <RunInfo>
+    <WorkingDir>DMDC_RefGov</WorkingDir>
+    <Sequence>
+             readTrainData,
+			 DMDCTrain,
+             pickleRom,
+             stats,
+             writeOut,
+			 RGrun,
+			 printTOfile
+    </Sequence>
+    <batchSize>1</batchSize>
+  </RunInfo>
+
+  <Files>
+    <!--  we load a synthesized data with 1 time, 1 actuation(u), 3 state(x) and 2 output(y) -->
+	<!-- Note: Adjacent rows should have constant time interval for DMDC -->
+    <Input name="TrainDataFile">../SES_22_TUYX_Selected.csv</Input>
+    <Input name="ROMpk" type="">ROMpk</Input>
+	<Input name="ABCMatrices" type="">DMDcCxCoeff.xml</Input>
+  </Files>
+
+  <DataObjects>
+    <PointSet name="TrainData">
+      <Input>Time</Input>
+      <Output>u1,y1,y2,x1,x2,x3</Output>
+    </PointSet>
+	<!-- pointset for DMDc training -->
+    <DataSet name="rom_stats"/>
+	<!-- ROM statistics -->
+    <PointSet name="RGInput">
+      <Input>P1 </Input>
+      <Output>OutputPlaceHolder</Output>
+    </PointSet>
+    <PointSet name="RGOutput">
+      <Input>P1 </Input>
+      <Output>V1, V1min, V1max </Output>
+    </PointSet>
+	<!-- input and output pointsets for RG -->
+  </DataObjects>
+
+  <Models>
+    <ROM name="DMDrom" subType="DMDC">
+	  <Target>Time,y1,y2</Target>
+	  <!-- If Target only contains Time, Calculate A and B only -->
+	  <!-- If Target contains y(s) beside Time, Calculate A, B and C -->
+      <Features>u1,x1,x2,x3</Features>
+	  <!-- Features include all the u(s) and x(s) -->
+      <Actuators>u1</Actuators>
+	  <pivotParameter>Time</pivotParameter>   
+      <rankSVD>-1</rankSVD>
+	  <!-- rankSVD: -1 = No truncation; 0 = optimized truncation; pos. int = truncation level -->
+	  <SubtractNormUXY>True</SubtractNormUXY>
+	  <!-- SubtractNormUXY: True = will subtract the initial values from U,X,Y -->
+    </ROM>
+	
+    <ExternalModel name="RG1" subType="RefGov.RefGov_SIMO">
+	  <variables> P1, V1, V1min, V1max </variables>
+	  <!-- 4 variables: Issued Setpoint(P1), Adjusted Setpoint(V1), bounds of V1(V1min & V1max) -->
+	  <constant varName="Min_Target1"> 35.0E6</constant> 
+	  <constant varName="Max_Target1"> 40.0E6</constant> 
+	  <constant varName="Min_Target2"> 1000 </constant> 
+	  <constant varName="Max_Target2"> 1800 </constant> 
+	  <!-- lower and upper bounds for y vector, will be internally checked -->
+	  <constant varName="MOASsteps"> 10 </constant>
+	  <!-- steps in MOAS calculation, "g" value -->
+      <outputVariable>V1, V1min, V1max </outputVariable>
+	  <!-- 3 output variables -->  
+    </ExternalModel>
+  </Models>
+
+  <Distributions>
+    <Uniform name="one">
+        <lowerBound>30E6</lowerBound>
+        <upperBound>45E6</upperBound>
+    </Uniform>
+	<!-- distribution for P1 sampling -->
+  </Distributions>
+
+   <Samplers>
+    <MonteCarlo name="RG_Sampler">
+      <samplerInit>
+        <limit>10</limit>
+      </samplerInit>
+      <variable name="P1">
+        <distribution>one</distribution>
+      </variable>
+    </MonteCarlo>
+	<!-- A MonteCarlo sampler for P1 sampling  -->
+  </Samplers>
+
+  <Steps>
+    <IOStep name="readTrainData">
+      <Input class="Files" type="">TrainDataFile</Input>
+      <Output class="DataObjects" type="PointSet">TrainData</Output>
+    </IOStep>
+	<RomTrainer name="DMDCTrain">
+      <Input class="DataObjects" type="PointSet">TrainData</Input>
+      <Output class="Models" type="ROM">DMDrom</Output>
+    </RomTrainer>
+    <IOStep name="pickleRom">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="Files" type="">ROMpk</Output>
+    </IOStep>
+    <IOStep name="stats">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="DataObjects" type="DataSet">rom_stats</Output>
+    </IOStep>
+    <IOStep name="writeOut" pauseAtEnd="True">
+      <Input class="DataObjects" type="DataSet">rom_stats</Input>
+      <Output class="OutStreams" type="Print">DMDcCxCoeff</Output>
+    </IOStep>
+	
+    <MultiRun name="RGrun">
+	  <Input		  class="DataObjects"   type="PointSet">RGInput</Input>
+      <Input 		  class="Files" 		type="">ABCMatrices</Input>
+      <Model          class="Models"        type="ExternalModel">RG1</Model>
+	  <Sampler		  class="Samplers"		type="MonteCarlo">RG_Sampler</Sampler>
+      <Output         class="DataObjects"   type="PointSet">RGOutput</Output>
+    </MultiRun>
+	<!-- MultiRun step to execute the plugin for multiple times -->
+	
+    <IOStep name="printTOfile">
+		<Input          class="DataObjects"   type="PointSet">RGOutput</Input>
+		<Output         class="OutStreams"    type="Print">RefGovOutput</Output>
+	</IOStep>
+	<!-- IOStep to dump the RGOutput to RefGovOutput.csv-->
+  </Steps>
+
+  <OutStreams>
+    <Print name="DMDcCxCoeff">
+      <type>csv</type>
+      <source>rom_stats</source>
+    </Print>	
+    <Print name="RefGovOutput">
+      <type>csv</type>
+      <source>RGOutput</source>
+      <what>input,output</what>
+    </Print>
+  </OutStreams>
+
+</Simulation>

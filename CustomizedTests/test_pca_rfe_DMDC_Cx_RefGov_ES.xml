@@ -1,0 +1,240 @@
+<?xml version="1.0" ?>
+<Simulation verbosity="all">
+  <RunInfo>
+    <WorkingDir>PCA_RFE_DMDC_RefGov_ES</WorkingDir>
+    <!-- <Sequence>readIn,prePCA,selectFeatures</Sequence> -->
+    <Sequence>
+		readIn,
+		prePCA,
+		selectFeatures,
+		extractFeatures,
+		readTrainData,
+		DMDCTrain,
+        pickleRom,
+        stats,
+        writeOut,
+		RGrun,
+		printTOfile</Sequence>
+    <batchSize>1</batchSize>
+  </RunInfo>
+  
+  <VariableGroups>
+    <Group name="allInputVars">ES.CS.actuatorBus.W_setPoint,ES.CS.sensorBus.Q_balance,ES.CS.sensorBus.W_balance,ES.CS.W_totalSetpoint,ES.CS.gain.k,ES.CS.gain.u,ES.CS.gain.y,ES.CS.W_totalSetpoint_SC.y,ES.ED.actuatorBus.W_setPoint,ES.ED.sensorBus.Q_balance,ES.ED.sensorBus.W_balance,ES.actuatorBus.W_setPoint,ES.sensorBus.Q_balance,ES.sensorBus.W_balance,ES.Q_balance.y,ES.W_balance.y,ES.portElec_b.f,ES.capacityFrac_start,ES.capacity_max,ES.capacity_min,ES.chargePower_max,ES.chargePower_min,ES.dischargePower_max,ES.dischargePower_min,ES.battery.capacityFrac_start,ES.battery.capacity_max,ES.battery.capacity_min,ES.battery.chargePower_max,ES.battery.chargePower_min,ES.battery.dischargePower_max,ES.battery.dischargePower_min,ES.battery.capacity_usable,ES.battery.E_start,ES.battery.E_max,ES.battery.E_min,ES.battery.der(E),ES.battery.W,ES.battery.f,ES.battery.W_setpoint,ES.battery.greaterThreshold.threshold,ES.battery.greaterThreshold.u,ES.battery.greaterThreshold.y,ES.battery.W_limited.u1,ES.battery.W_limited.u2,ES.battery.W_limited.u3,ES.battery.W_limited.y,ES.battery.charge_min_greater.threshold,ES.battery.charge_min_greater.u,ES.battery.charge_min_greater.y,ES.battery.charge_max_less.threshold,ES.battery.charge_max_less.u,ES.battery.charge_max_less.y,ES.battery.charge_switch.u1,ES.battery.charge_switch.u2,ES.battery.charge_switch.u3,ES.battery.charge_switch.y,ES.battery.chargeZero.k,ES.battery.chargeZero.y,ES.battery.charge_max_switch.u1,ES.battery.charge_max_switch.u2,ES.battery.charge_max_switch.u3,ES.battery.charge_max_switch.y,ES.battery.charge_max.k,ES.battery.charge_max.y,ES.battery.discharge_min_greater.threshold,ES.battery.discharge_min_greater.u,ES.battery.discharge_min_greater.y,ES.battery.discharge_switch.u1,ES.battery.discharge_switch.u2,ES.battery.discharge_switch.u3,ES.battery.discharge_switch.y,ES.battery.discharge_max_less.threshold,ES.battery.discharge_max_less.u,ES.battery.discharge_max_less.y,ES.battery.discharge_max_switch.u1,ES.battery.discharge_max_switch.u2,ES.battery.discharge_max_switch.u3,ES.battery.discharge_max_switch.y,ES.battery.abs.u,ES.battery.abs.y,ES.battery.abs.generateEvent,ES.battery.dischargeZero.k,ES.battery.dischargeZero.y,ES.battery.discharge_max.k,ES.battery.discharge_max.y,ES.battery.E_total.k,ES.battery.E_total.outMax,ES.battery.E_total.outMin,ES.battery.E_total.initType,ES.battery.E_total.limitsAtInit,ES.battery.E_total.y_start,ES.battery.E_total.strict,ES.battery.E_total.u,ES.battery.E_total.y,ES.battery.E_total.der(y),ES.battery.port.W,ES.battery.port.f
+	</Group>
+    <Group name="outputvars">ES.portElec_b.W,ES.battery.E</Group>
+    <Group name="actuatorvars">SC.demand_ES.y[1]</Group>
+    <Group name="PCADimensions">PCADimension1,PCADimension2,PCADimension3,PCADimension4,PCADimension5,PCADimension6,PCADimension7,PCADimension8,PCADimension9,PCADimension10,PCADimension11,PCADimension12,PCADimension13,PCADimension14,PCADimension15,PCADimension16,PCADimension17,PCADimension18,PCADimension19,PCADimension20,PCADimension21,PCADimension22,PCADimension23,PCADimension24,PCADimension25,PCADimension26,PCADimension27,PCADimension28,PCADimension29,PCADimension30</Group>
+  </VariableGroups>
+  
+  <Files>
+    <Input name="DataSetsFile">../ES_Dymola.csv</Input>
+	<Input name="TrainDataFile">printTrainingSet.csv</Input>
+    <Input name="ROMpk" type="">ROMpk</Input>
+	<Input name="ABCMatrices" type="">DMDcCxCoeff.xml</Input>
+  </Files>
+  
+  <Models>
+    <PostProcessor name="FeatureSelectionRFE" subType="FeatureSelection">
+      <what>RFE</what>
+      <features>PCADimensions</features>
+      <targets>outputvars</targets>
+      <minimumNumberOfFeatures>6</minimumNumberOfFeatures>
+      <aggregateTargets>True</aggregateTargets>
+    </PostProcessor>
+    
+	<PostProcessor name="PCA" subType="DataMining" verbosity="quiet">
+      <KDD lib="SciKitLearn">
+        <Features>allInputVars</Features>
+        <SKLtype>decomposition|PCA</SKLtype>
+        <n_components>30</n_components>
+      </KDD>
+    </PostProcessor>
+    
+	<PostProcessor name="DataObjectVariablesSelector" subType="DataObjectVariablesSelector" verbosity="quiet">
+      <target>FeatureSelectionRFE_ES.portElec_b.W</target>
+      <variableDataObject>pp_out</variableDataObject>
+    </PostProcessor>
+    
+	<ROM name="DMDrom" subType="DMDC">
+	  <Target>Time,ES.portElec_b.W,ES.battery.E</Target>
+	  <!-- If Target only contains Time, Calculate A and B only -->
+	  <!-- If Target contains y(s) beside Time, Calculate A, B and C -->
+      <Features>SC.demand_ES.y[1],PCADimension4,PCADimension3,PCADimension6,PCADimension5,PCADimension2,PCADimension1</Features>
+	  <!-- Features include all the u(s) and x(s) -->
+      <Actuators>SC.demand_ES.y[1]</Actuators>
+	  <pivotParameter>Time</pivotParameter>   
+      <rankSVD>-1</rankSVD>
+	  <!-- rankSVD: -1 = No truncation; 0 = optimized truncation; pos. int = truncation level -->
+	  <SubtractNormUXY>True</SubtractNormUXY>
+	  <!-- SubtractNormUXY: True = will subtract the initial values from U,X,Y -->
+    </ROM>
+	
+    <ExternalModel name="RG1" subType="RefGov.RefGov_SIMO">
+	  <variables> P1, V1, V1min, V1max </variables>
+	  <!-- 4 variables: Issued Setpoint(P1), Adjusted Setpoint(V1), bounds of V1(V1min & V1max) -->
+	  <constant varName="Min_Target1"> -5.0E6</constant> 
+	  <constant varName="Max_Target1"> +5.0E6</constant> 
+	  <constant varName="Min_Target2"> 0 </constant> 
+	  <constant varName="Max_Target2"> 7.2E10 </constant> 
+	  <!-- lower and upper bounds for y vector, will be internally checked -->
+	  <constant varName="MOASsteps"> 10 </constant>
+	  <!-- steps in MOAS calculation, "g" value -->
+      <outputVariable>V1, V1min, V1max </outputVariable>
+	  <!-- 3 output variables -->  
+    </ExternalModel> 
+  </Models>
+  
+  <Distributions>
+    <Uniform name="one">
+        <lowerBound>-10E6</lowerBound>
+        <upperBound>+10E6</upperBound>
+    </Uniform>
+	<!-- distribution for P1 sampling -->
+  </Distributions>
+
+   <Samplers>
+    <MonteCarlo name="RG_Sampler">
+      <samplerInit>
+        <limit>10</limit>
+      </samplerInit>
+      <variable name="P1">
+        <distribution>one</distribution>
+      </variable>
+    </MonteCarlo>
+	<!-- A MonteCarlo sampler for P1 sampling  -->
+  </Samplers>
+
+  <Steps>
+    <IOStep name="readIn"  >
+      <Input class="Files" type="">DataSetsFile</Input>
+      <Output class="DataObjects" type="PointSet">DataSetsRaw</Output>
+    </IOStep>
+    <PostProcess name="prePCA"  >
+      <Input class="DataObjects" type="PointSet">DataSetsRaw</Input>
+      <Model class="Models" type="PostProcessor">PCA</Model>
+      <SolutionExport class="DataObjects" type="PointSet">drInfo</SolutionExport>
+      <Output class="DataObjects" type="PointSet">DataSets</Output>
+      <!-- <Output class="OutStreams" type="Print">PrintDataSet</Output>  -->
+      <!-- <Output class="OutStreams" type="Print">info</Output> -->
+    </PostProcess>
+    <PostProcess name="selectFeatures"  >
+      <Input class="DataObjects" type="PointSet">DataSets</Input>
+      <Model class="Models" type="PostProcessor">FeatureSelectionRFE</Model>
+      <Output class="DataObjects" type="PointSet">pp_out</Output>
+      <Output class="OutStreams" type="Print">printpp</Output>
+    </PostProcess>
+    <PostProcess name="extractFeatures"  >
+      <Input class="DataObjects" type="PointSet">pp_out</Input>
+      <Input class="DataObjects" type="PointSet">DataSets</Input>
+      <Model class="Models" type="PostProcessor">DataObjectVariablesSelector</Model>
+      <Output class="DataObjects" type="PointSet">TrainingSet</Output>
+      <Output class="OutStreams" type="Print">printTrainingSet</Output>
+    </PostProcess>
+    <IOStep name="readTrainData">
+      <Input class="Files" type="">TrainDataFile</Input>
+      <Output class="DataObjects" type="PointSet">TrainData</Output>
+    </IOStep>
+	<RomTrainer name="DMDCTrain">
+      <Input class="DataObjects" type="PointSet">TrainData</Input>
+      <Output class="Models" type="ROM">DMDrom</Output>
+    </RomTrainer>
+    <IOStep name="pickleRom">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="Files" type="">ROMpk</Output>
+    </IOStep>
+    <IOStep name="stats">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="DataObjects" type="DataSet">rom_stats</Output>
+    </IOStep>
+    <IOStep name="writeOut" pauseAtEnd="True">
+      <Input class="DataObjects" type="DataSet">rom_stats</Input>
+      <Output class="OutStreams" type="Print">DMDcCxCoeff</Output>
+    </IOStep>
+	
+    <MultiRun name="RGrun">
+	  <Input		  class="DataObjects"   type="PointSet">RGInput</Input>
+      <Input 		  class="Files" 		type="">ABCMatrices</Input>
+      <Model          class="Models"        type="ExternalModel">RG1</Model>
+	  <Sampler		  class="Samplers"		type="MonteCarlo">RG_Sampler</Sampler>
+      <Output         class="DataObjects"   type="PointSet">RGOutput</Output>
+    </MultiRun>
+	<!-- MultiRun step to execute the plugin for multiple times -->
+	
+    <IOStep name="printTOfile">
+		<Input          class="DataObjects"   type="PointSet">RGOutput</Input>
+		<Output         class="OutStreams"    type="Print">RefGovOutput</Output>
+	</IOStep>
+	<!-- IOStep to dump the RGOutput to RefGovOutput.csv-->
+ 
+  </Steps>
+
+  <DataObjects>
+    <PointSet name="DataSetsRaw">
+      <Input>allInputVars</Input>
+      <Output>outputvars,Time,actuatorvars</Output>
+    </PointSet>
+    <PointSet name="DataSets">
+      <Input>allInputVars</Input>
+      <Output>outputvars,PCADimensions,Time,actuatorvars</Output>
+    </PointSet>
+    <PointSet name="drInfo">
+      <Input>allInputVars,PCADimension</Input>
+    </PointSet>
+    <PointSet name="pp_out">
+      <Output>FeatureSelectionRFE_ES.portElec_b.W,FeatureSelectionRFE_ES.battery.E</Output>
+    </PointSet>
+    <PointSet name="TrainingSet">
+	  <Input>
+	  PCADimension4,PCADimension3,PCADimension6,PCADimension5,PCADimension2,PCADimension1
+	  </Input>
+	  
+      <Output>outputvars,Time,actuatorvars</Output>
+    </PointSet>
+    
+	<PointSet name="TrainData">
+      <Input>Time</Input>
+      <Output>SC.demand_ES.y[1],ES.portElec_b.W,ES.battery.E,PCADimension4,PCADimension3,PCADimension6,PCADimension5,PCADimension2,PCADimension1</Output>
+    </PointSet>
+	<!-- pointset for DMDc training -->
+    <DataSet name="rom_stats"/>
+	<!-- ROM statistics -->
+    <PointSet name="RGInput">
+      <Input>P1 </Input>
+      <Output>OutputPlaceHolder</Output>
+    </PointSet>
+    <PointSet name="RGOutput">
+      <Input>P1 </Input>
+      <Output>V1, V1min, V1max </Output>
+    </PointSet>
+
+  </DataObjects>
+ 
+  <OutStreams>
+    <Print name="info">
+      <type>csv</type>
+      <source>drInfo</source>
+    </Print>
+    <Print name="printpp">
+      <type>csv</type>
+      <source>pp_out</source>
+    </Print>
+    <Print name="printTrainingSet">
+      <type>csv</type>
+      <source>TrainingSet</source>
+    </Print>
+    <Print name="PrintDataSet">
+      <type>csv</type>
+      <source>DataSets</source>
+    </Print>
+    <Print name="DMDcCxCoeff">
+      <type>csv</type>
+      <source>rom_stats</source>
+    </Print>	
+    <Print name="RefGovOutput">
+      <type>csv</type>
+      <source>RGOutput</source>
+      <what>input,output</what>
+    </Print>
+  </OutStreams>
+
+</Simulation>

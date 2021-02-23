@@ -1,0 +1,10 @@
+<DataObjectMetadata name="RGOutput">
+  <DataSet type="Static">
+    <general>
+      <inputs>P1</inputs>
+      <outputs>V1,V1min,V1max</outputs>
+      <sampleTag>RAVEN_sample_ID</sampleTag>
+    </general>
+  </DataSet>
+  
+</DataObjectMetadata>

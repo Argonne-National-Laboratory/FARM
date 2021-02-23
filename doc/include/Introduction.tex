@@ -1,0 +1,70 @@
+% Copyright 2021 UChicago Argonne, LLC
+% Author:
+% - Haoyu Wang and Roberto Ponciroli, Argonne National Laboratory
+% - Andrea Alfonsi, Idaho National Laboratory
+
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+
+%   https://www.apache.org/licenses/LICENSE-2.0.txt
+
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+
+\section{Introduction}
+\label{sec:Introduction}
+Feasible Actuator Range Modifier (FARM) is a RAVEN (\cite{RAVEN} and \cite{RAVENtheoryMan})plugin designed to solve the 
+supervisory control problem in Integrated Energy System (IES) project. FARM utilizes the linear state-space representation 
+(A,B,C matrices) of a model to predict the system state and output in the future time steps, and adjust the actuation variable 
+to avoid the violation of implicit thermal mechanical constraints.
+
+\subsection{FARM Plugin: Reference Governor SIMO}
+\label{RG_SIMO}
+  The first external model in FARM plugin is a scalar Reference Governor(\cite{kolmanovsky2014reference} and 
+  \cite{garone2017reference}) for single input multiple output (SIMO) system. Assume 
+  the system has the following linear state space representation(\cite{rowell2002state}) in \textbf{discrete} time domain:
+  \begin{itemize}
+  \item \begin{math} \overrightarrow{x}[k+1]=\textbf{A}*\overrightarrow{x}[k]+\textbf{B}*u[k] \end{math}
+  \item \begin{math} \overrightarrow{y}[k+1]=\textbf{C}*\overrightarrow{x}[k+1] \end{math}
+  \end{itemize}
+  where:
+  \begin{itemize}
+  \item \begin{math} u\in\mathbb{R} \end{math}, is system actuation variable, scalar;
+  \item \begin{math} \overrightarrow{x}\in\mathbb{R}^n \end{math}, is system state vector, n elements;
+  \item \begin{math} \overrightarrow{y}\in\mathbb{R}^p \end{math}, is system output vector, p elements;
+  \item \begin{math} \textbf{A}\in\mathbb{C}^{n \times n} \end{math} is the state matrix;
+  \item \begin{math} \textbf{B}\in\mathbb{C}^{n \times 1} \end{math} is the input matrix;
+  \item \begin{math} \textbf{C}\in\mathbb{C}^{p \times n} \end{math} is the output matrix;
+  
+  \end{itemize}
+
+  The Reference Governor SIMO use the linear matrices \begin{math} \textbf{A},\textbf{ B}, \textbf{ C} \end{math} and the 
+  current system state vector \begin{math} \overrightarrow{x}[k] \end{math} to predict the system state vectors
+  \begin{math} \overrightarrow{x}[k+1],\overrightarrow{x}[k+2], ... ,\overrightarrow{x}[k+g] \end{math} and output vectors 
+  \begin{math} \overrightarrow{y}[k+1],\overrightarrow{y}[k+2], ... ,\overrightarrow{y}[k+g] \end{math} for the next 
+  \begin{math} \textbf{g} \end{math} time steps assuming a constant actuation variable \begin{math} u \end{math} is 
+  applied to the system. In addition, the steady state vector 
+  \begin{math} \overrightarrow{x}[\infty]\end{math} and output vector \begin{math} \overrightarrow{y}[\infty]\end{math} 
+  under the same system actuation variable \begin{math} u \end{math} is predicted.
+
+
+  With the knowledge of the constraints 
+  (\begin{math} \overrightarrow{y_{min}} \end{math} and \begin{math} \overrightarrow{y_{max}} \end{math}) 
+  on system output vector \begin{math} \overrightarrow{y} \end{math}, the predicted system output vectors 
+  (\begin{math} \overrightarrow{y}[k+1],\overrightarrow{y}[k+2], ... ,\overrightarrow{y}[k+g] \end{math}, 
+  and \begin{math} \overrightarrow{y}[\infty]\end{math}) 
+  will be compared to the constraints element-wisely. Once a violation was found, the actuation variable 
+  \begin{math} u \end{math} will be scaled down to avoid the violation.
+
+  
+  In addition to the scaled down system actuation variable \begin{math} u \end{math}, the admissible range of actuation 
+  variable (\begin{math} u_{min} \end{math} and \begin{math} u_{max} \end{math}) is also calculated. The actuation 
+  variable with a value within this admissible range will not cause any violation of the constraints in both the next consecutive 
+  \begin{math} \textbf{g} \end{math} time steps and the steady state.
+
+
+

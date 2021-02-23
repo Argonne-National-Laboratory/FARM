@@ -1,0 +1,9 @@
+<DataObjectMetadata name="pp_out">
+  <DataSet type="Static">
+    <general>
+      <outputs>FeatureSelectionRFE_BOP.portElec_b.W,FeatureSelectionRFE_BOP.steamTurbine.portHP.p</outputs>
+      <sampleTag>RAVEN_sample_ID</sampleTag>
+    </general>
+  </DataSet>
+  
+</DataObjectMetadata>

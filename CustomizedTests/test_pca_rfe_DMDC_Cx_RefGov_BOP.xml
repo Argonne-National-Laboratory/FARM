@@ -1,0 +1,240 @@
+<?xml version="1.0" ?>
+<Simulation verbosity="all">
+  <RunInfo>
+    <WorkingDir>PCA_RFE_DMDC_RefGov_BOP</WorkingDir>
+    <!-- <Sequence>readIn,prePCA,selectFeatures</Sequence> -->
+    <Sequence>
+		readIn,
+		prePCA,
+		selectFeatures,
+		extractFeatures,
+		readTrainData,
+		DMDCTrain,
+        pickleRom,
+        stats,
+        writeOut,
+		RGrun,
+		printTOfile</Sequence>
+    <batchSize>1</batchSize>
+  </RunInfo>
+  
+  <VariableGroups>
+    <Group name="allInputVars">BOP.CS.actuatorBus.opening_TCV,BOP.CS.actuatorBus.opening_BV,BOP.CS.sensorBus.Q_balance,BOP.CS.sensorBus.W_balance,BOP.CS.sensorBus.W_total,BOP.CS.sensorBus.p_inlet_steamTurbine,BOP.CS.delayStartTCV,BOP.CS.delayStartBV,BOP.CS.p_nominal,BOP.CS.TCV_opening_nominal,BOP.CS.BV_opening_nominal,BOP.CS.W_totalSetpoint,BOP.CS.TCV_openingNominal.k,BOP.CS.TCV_openingNominal.y,BOP.CS.switch_BV.u1,BOP.CS.switch_BV.u2,BOP.CS.switch_BV.u3,BOP.CS.switch_BV.y,BOP.CS.BV_openingNominal.k,BOP.CS.BV_openingNominal.y,BOP.CS.greater5.u1,BOP.CS.greater5.u2,BOP.CS.greater5.y,BOP.CS.clock.y,BOP.CS.clock.offset,BOP.CS.clock.startTime,BOP.CS.valvedelay.k,BOP.CS.valvedelay.y,BOP.CS.PID_TCV_opening.u_s,BOP.CS.PID_TCV_opening.u_m,BOP.CS.PID_TCV_opening.y,BOP.CS.PID_TCV_opening.controlError,BOP.CS.PID_TCV_opening.controllerType,BOP.CS.PID_TCV_opening.with_FF,BOP.CS.PID_TCV_opening.derMeas,BOP.CS.PID_TCV_opening.k,BOP.CS.PID_TCV_opening.Ti,BOP.CS.PID_TCV_opening.Td,BOP.CS.PID_TCV_opening.yb,BOP.CS.PID_TCV_opening.k_s,BOP.CS.PID_TCV_opening.k_m,BOP.CS.PID_TCV_opening.k_ff,BOP.CS.PID_TCV_opening.yMax,BOP.CS.PID_TCV_opening.yMin,BOP.CS.PID_TCV_opening.wp,BOP.CS.PID_TCV_opening.wd,BOP.CS.PID_TCV_opening.Ni,BOP.CS.PID_TCV_opening.Nd,BOP.CS.PID_TCV_opening.initType,BOP.CS.PID_TCV_opening.xi_start,BOP.CS.PID_TCV_opening.xd_start,BOP.CS.PID_TCV_opening.y_start,BOP.CS.PID_TCV_opening.strict,BOP.CS.PID_TCV_opening.reset,BOP.CS.PID_TCV_opening.y_reset,BOP.CS.PID_TCV_opening.addP.u1,BOP.CS.PID_TCV_opening.addP.u2,BOP.CS.PID_TCV_opening.addP.y,BOP.CS.PID_TCV_opening.addP.k1,BOP.CS.PID_TCV_opening.addP.k2,BOP.CS.PID_TCV_opening.P.k,BOP.CS.PID_TCV_opening.P.u,BOP.CS.PID_TCV_opening.P.y,BOP.CS.PID_TCV_opening.gainPID.k,BOP.CS.PID_TCV_opening.gainPID.u,BOP.CS.PID_TCV_opening.gainPID.y,BOP.CS.PID_TCV_opening.addPID.k1,BOP.CS.PID_TCV_opening.addPID.k2,BOP.CS.PID_TCV_opening.addPID.k3,BOP.CS.PID_TCV_opening.addPID.u1,BOP.CS.PID_TCV_opening.addPID.u2,BOP.CS.PID_TCV_opening.addPID.u3,BOP.CS.PID_TCV_opening.addPID.y,BOP.CS.PID_TCV_opening.limiter.uMax,BOP.CS.PID_TCV_opening.limiter.uMin,BOP.CS.PID_TCV_opening.limiter.strict,BOP.CS.PID_TCV_opening.limiter.homotopyType,BOP.CS.PID_TCV_opening.limiter.limitsAtInit,BOP.CS.PID_TCV_opening.limiter.u,BOP.CS.PID_TCV_opening.limiter.y,BOP.CS.PID_TCV_opening.Fzero.k,BOP.CS.PID_TCV_opening.Fzero.y,BOP.CS.PID_TCV_opening.addFF.k1,BOP.CS.PID_TCV_opening.addFF.k2,BOP.CS.PID_TCV_opening.addFF.k3,BOP.CS.PID_TCV_opening.addFF.u1,BOP.CS.PID_TCV_opening.addFF.u2,BOP.CS.PID_TCV_opening.addFF.u3,BOP.CS.PID_TCV_opening.addFF.y,BOP.CS.PID_TCV_opening.gain_u_s.k,BOP.CS.PID_TCV_opening.gain_u_s.u,BOP.CS.PID_TCV_opening.gain_u_s.y,BOP.CS.PID_TCV_opening.gain_u_m.k,BOP.CS.PID_TCV_opening.gain_u_m.u,BOP.CS.PID_TCV_opening.gain_u_m.y,BOP.CS.PID_TCV_opening.null_bias.k,BOP.CS.PID_TCV_opening.null_bias.y,BOP.CS.switch_W_setpoint.u1,BOP.CS.switch_W_setpoint.u2,BOP.CS.switch_W_setpoint.u3,BOP.CS.switch_W_setpoint.y,BOP.CS.switch_TCV_setpoint.u1,BOP.CS.switch_TCV_setpoint.u2,BOP.CS.switch_TCV_setpoint.u3,BOP.CS.switch_TCV_setpoint.y,BOP.CS.TCV_diffopeningNominal.k,BOP.CS.TCV_diffopeningNominal.y,BOP.CS.TCV_opening.u1,BOP.CS.TCV_opening.u2,BOP.CS.TCV_opening.y,BOP.CS.TCV_opening.k1,BOP.CS.TCV_opening.k2,BOP.CS.p_Nominal.k,BOP.CS.p_Nominal.y,BOP.CS.switch_P_setpoint.u1,BOP.CS.switch_P_setpoint.u2,BOP.CS.switch_P_setpoint.u3,BOP.CS.switch_P_setpoint.y,BOP.CS.valvedelayBV.k,BOP.CS.valvedelayBV.y,BOP.CS.greater1.u1,BOP.CS.greater1.u2,BOP.CS.greater1.y,BOP.CS.PID_BV_opening.u_s,BOP.CS.PID_BV_opening.u_m,BOP.CS.PID_BV_opening.y,BOP.CS.PID_BV_opening.controlError,BOP.CS.PID_BV_opening.controllerType,BOP.CS.PID_BV_opening.with_FF,BOP.CS.PID_BV_opening.derMeas,BOP.CS.PID_BV_opening.k,BOP.CS.PID_BV_opening.Ti,BOP.CS.PID_BV_opening.Td,BOP.CS.PID_BV_opening.yb,BOP.CS.PID_BV_opening.k_s,BOP.CS.PID_BV_opening.k_m,BOP.CS.PID_BV_opening.k_ff,BOP.CS.PID_BV_opening.yMax,BOP.CS.PID_BV_opening.yMin,BOP.CS.PID_BV_opening.wp,BOP.CS.PID_BV_opening.wd,BOP.CS.PID_BV_opening.Ni,BOP.CS.PID_BV_opening.Nd,BOP.CS.PID_BV_opening.initType,BOP.CS.PID_BV_opening.xi_start,BOP.CS.PID_BV_opening.xd_start,BOP.CS.PID_BV_opening.y_start,BOP.CS.PID_BV_opening.strict,BOP.CS.PID_BV_opening.reset,BOP.CS.PID_BV_opening.y_reset,BOP.CS.PID_BV_opening.addP.u1,BOP.CS.PID_BV_opening.addP.u2,BOP.CS.PID_BV_opening.addP.y,BOP.CS.PID_BV_opening.addP.k1,BOP.CS.PID_BV_opening.addP.k2,BOP.CS.PID_BV_opening.P.k,BOP.CS.PID_BV_opening.P.u,BOP.CS.PID_BV_opening.P.y,BOP.CS.PID_BV_opening.gainPID.k,BOP.CS.PID_BV_opening.gainPID.u,BOP.CS.PID_BV_opening.gainPID.y,BOP.CS.PID_BV_opening.addPID.k1,BOP.CS.PID_BV_opening.addPID.k2,BOP.CS.PID_BV_opening.addPID.k3,BOP.CS.PID_BV_opening.addPID.u1,BOP.CS.PID_BV_opening.addPID.u2,BOP.CS.PID_BV_opening.addPID.u3,BOP.CS.PID_BV_opening.addPID.y,BOP.CS.PID_BV_opening.limiter.uMax,BOP.CS.PID_BV_opening.limiter.uMin,BOP.CS.PID_BV_opening.limiter.strict,BOP.CS.PID_BV_opening.limiter.homotopyType,BOP.CS.PID_BV_opening.limiter.limitsAtInit,BOP.CS.PID_BV_opening.limiter.u,BOP.CS.PID_BV_opening.limiter.y,BOP.CS.PID_BV_opening.Fzero.k,BOP.CS.PID_BV_opening.Fzero.y,BOP.CS.PID_BV_opening.addFF.k1,BOP.CS.PID_BV_opening.addFF.k2,BOP.CS.PID_BV_opening.addFF.k3,BOP.CS.PID_BV_opening.addFF.u1,BOP.CS.PID_BV_opening.addFF.u2,BOP.CS.PID_BV_opening.addFF.u3,BOP.CS.PID_BV_opening.addFF.y,BOP.CS.PID_BV_opening.gain_u_s.k,BOP.CS.PID_BV_opening.gain_u_s.u,BOP.CS.PID_BV_opening.gain_u_s.y,BOP.CS.PID_BV_opening.gain_u_m.k,BOP.CS.PID_BV_opening.gain_u_m.u,BOP.CS.PID_BV_opening.gain_u_m.y,BOP.CS.PID_BV_opening.null_bias.k,BOP.CS.PID_BV_opening.null_bias.y,BOP.CS.BV_opening.u1,BOP.CS.BV_opening.u2,BOP.CS.BV_opening.y,BOP.CS.BV_opening.k1,BOP.CS.BV_opening.k2,BOP.CS.BV_diffopeningNominal.k,BOP.CS.BV_diffopeningNominal.y,BOP.CS.W_totalSetpoint_BOP.y,BOP.ED.actuatorBus.opening_TCV,BOP.ED.actuatorBus.opening_BV,BOP.ED.sensorBus.Q_balance,BOP.ED.sensorBus.W_balance,BOP.ED.sensorBus.W_total,BOP.ED.sensorBus.p_inlet_steamTurbine,BOP.actuatorBus.opening_TCV,BOP.actuatorBus.opening_BV,BOP.sensorBus.Q_balance,BOP.sensorBus.W_balance,BOP.sensorBus.W_total,BOP.sensorBus.p_inlet_steamTurbine,BOP.Q_balance.y,BOP.W_balance.y,BOP.nPorts_a3,BOP.allowFlowReversal,BOP.port_a_nominal.p,BOP.port_a_nominal.T,BOP.port_a_nominal.h,BOP.port_a_nominal.m_flow,BOP.port_b_nominal.p,BOP.port_b_nominal.T,BOP.port_b_nominal.h,BOP.port_b_nominal.m_flow,BOP.port_a3_nominal_p[1],BOP.port_a3_nominal_T[1],BOP.port_a3_nominal_h[1],BOP.port_a3_nominal_m_flow[1],BOP.port_a_start.p,BOP.port_a_start.T,BOP.port_a_start.h,BOP.port_a_start.m_flow,BOP.port_b_start.p,BOP.port_b_start.T,BOP.port_b_start.h,BOP.port_b_start.m_flow,BOP.port_a3_start_p[1],BOP.port_a3_start_T[1],BOP.port_a3_start_h[1],BOP.port_a3_start_m_flow[1],BOP.port_a.m_flow,BOP.port_a.p,BOP.port_a.h_outflow,BOP.port_b.m_flow,BOP.port_b.p,BOP.port_b.h_outflow,BOP.port_a3[1].m_flow,BOP.port_a3[1].p,BOP.port_a3[1].der(p),BOP.port_a3[1].h_outflow,BOP.portElec_b.f,BOP.p_condenser,BOP.p_reservoir,BOP.steamTurbine.portHP.m_flow,BOP.steamTurbine.portHP.h_outflow,BOP.steamTurbine.portLP.m_flow,BOP.steamTurbine.portLP.p,BOP.steamTurbine.portLP.h_outflow,BOP.steamTurbine.shaft_a.phi,BOP.steamTurbine.shaft_a.tau,BOP.steamTurbine.shaft_b.phi,BOP.steamTurbine.shaft_b.tau,BOP.steamTurbine.allowFlowReversal,BOP.steamTurbine.nUnits,BOP.steamTurbine.energyDynamics,BOP.steamTurbine.taus[1],BOP.steamTurbine.taus[2],BOP.steamTurbine.Q_fracs[1],BOP.steamTurbine.Q_fracs[2],BOP.steamTurbine.Q_units_start[1],BOP.steamTurbine.Q_units_start[2],BOP.steamTurbine.eta_mech,BOP.steamTurbine.eta_wetSteam.x_abs_in,BOP.steamTurbine.eta_wetSteam.x_abs_out,BOP.steamTurbine.eta_wetSteam.eta_nominal,BOP.steamTurbine.eta_wetSteam.eta,BOP.steamTurbine.p_a_start,BOP.steamTurbine.p_b_start,BOP.steamTurbine.use_T_start,BOP.steamTurbine.T_a_start,BOP.steamTurbine.T_b_start,BOP.steamTurbine.h_a_start,BOP.steamTurbine.h_b_start,BOP.steamTurbine.X_start[1],BOP.steamTurbine.m_flow_start,BOP.steamTurbine.state_a.phase,BOP.steamTurbine.state_a.h,BOP.steamTurbine.state_a.d,BOP.steamTurbine.state_a.T,BOP.steamTurbine.state_a.p,BOP.steamTurbine.state_b.phase,BOP.steamTurbine.state_b.h,BOP.steamTurbine.state_b.d,BOP.steamTurbine.state_b.T,BOP.steamTurbine.state_b.p,BOP.steamTurbine.p_ratio,BOP.steamTurbine.phi,BOP.steamTurbine.der(phi),BOP.steamTurbine.tau,BOP.steamTurbine.omega,BOP.steamTurbine.m_flow,BOP.steamTurbine.h_in,BOP.steamTurbine.h_out,BOP.steamTurbine.h_is,BOP.steamTurbine.p_in,BOP.steamTurbine.p_out,BOP.steamTurbine.Q_mech,BOP.steamTurbine.Q_units[1],BOP.steamTurbine.der(Q_units[1]),BOP.steamTurbine.Q_units[2],BOP.steamTurbine.der(Q_units[2]),BOP.steamTurbine.Qbs[1],BOP.steamTurbine.Qbs[2],BOP.steamTurbine.eta_is,BOP.steamTurbine.p_crit,BOP.steamTurbine.sat_in.psat,BOP.steamTurbine.sat_in.Tsat,BOP.steamTurbine.sat_out.psat,BOP.steamTurbine.sat_out.Tsat,BOP.steamTurbine.bubble_in.phase,BOP.steamTurbine.bubble_in.h,BOP.steamTurbine.bubble_in.d,BOP.steamTurbine.bubble_in.T,BOP.steamTurbine.bubble_in.p,BOP.steamTurbine.dew_in.phase,BOP.steamTurbine.dew_in.h,BOP.steamTurbine.dew_in.d,BOP.steamTurbine.dew_in.T,BOP.steamTurbine.dew_in.p,BOP.steamTurbine.bubble_out.phase,BOP.steamTurbine.bubble_out.h,BOP.steamTurbine.bubble_out.d,BOP.steamTurbine.bubble_out.T,BOP.steamTurbine.bubble_out.p,BOP.steamTurbine.dew_out.phase,BOP.steamTurbine.dew_out.h,BOP.steamTurbine.dew_out.d,BOP.steamTurbine.dew_out.T,BOP.steamTurbine.dew_out.p,BOP.steamTurbine.h_fsat_in,BOP.steamTurbine.h_gsat_in,BOP.steamTurbine.h_fsat_out,BOP.steamTurbine.h_gsat_out,BOP.steamTurbine.x_th_in,BOP.steamTurbine.x_abs_in,BOP.steamTurbine.x_th_out,BOP.steamTurbine.x_abs_out,BOP.steamTurbine.partialArc,BOP.steamTurbine.partialArc_nominal,BOP.steamTurbine.m_flow_nominal,BOP.steamTurbine.use_Stodola,BOP.steamTurbine.Kt_constant,BOP.steamTurbine.use_NominalInlet,BOP.steamTurbine.p_inlet_nominal,BOP.steamTurbine.p_outlet_nominal,BOP.steamTurbine.use_T_nominal,BOP.steamTurbine.T_nominal,BOP.steamTurbine.d_nominal,BOP.steamTurbine.Kt,BOP.generator1.eta,BOP.generator1.J,BOP.generator1.nPoles,BOP.generator1.f_start,BOP.generator1.momentumDynamics,BOP.generator1.Q_mech,BOP.generator1.Q_elec,BOP.generator1.Q_loss,BOP.generator1.tau,BOP.generator1.omega_m,BOP.generator1.der(omega_m),BOP.generator1.omega_e,BOP.generator1.shaft_rpm,BOP.generator1.f,BOP.generator1.portElec.W,BOP.generator1.portElec.f,BOP.generator1.shaft_a.phi,BOP.generator1.shaft_a.der(phi),BOP.generator1.shaft_a.tau,BOP.sensorW.precision,BOP.sensorW.var,BOP.sensorW.y,BOP.sensorW.port_a.W,BOP.sensorW.port_a.f,BOP.sensorW.port_b.W,BOP.sensorW.port_b.f,BOP.sensorW.W,BOP.resistance.port_a.m_flow,BOP.resistance.port_a.p,BOP.resistance.port_a.h_outflow,BOP.resistance.port_b.m_flow,BOP.resistance.port_b.p,BOP.resistance.port_b.h_outflow,BOP.resistance.state.phase,BOP.resistance.state.h,BOP.resistance.state.d,BOP.resistance.state.T,BOP.resistance.state.p,BOP.resistance.dp,BOP.resistance.m_flow,BOP.resistance.showName,BOP.resistance.R,BOP.condenser.showName,BOP.condenser.port_a.m_flow,BOP.condenser.port_a.p,BOP.condenser.port_a.h_outflow,BOP.condenser.port_b.m_flow,BOP.condenser.port_b.p,BOP.condenser.port_b.h_outflow,BOP.condenser.p,BOP.condenser.V_total,BOP.condenser.massDynamics,BOP.condenser.V_liquid_start,BOP.condenser.set_m_flow,BOP.condenser.sat.psat,BOP.condenser.sat.Tsat,BOP.condenser.h_fsat,BOP.condenser.h_gsat,BOP.condenser.rho_fsat,BOP.condenser.rho_gsat,BOP.condenser.m_total,BOP.condenser.der(m_total),BOP.condenser.m_liquid,BOP.condenser.der(m_liquid),BOP.condenser.m_vapor,BOP.condenser.der(m_vapor),BOP.condenser.V_liquid,BOP.condenser.der(V_liquid),BOP.condenser.V_vapor,BOP.condenser.E,BOP.condenser.der(E),BOP.condenser.Q_total,BOP.volume.port_a.m_flow,BOP.volume.port_a.p,BOP.volume.port_a.h_outflow,BOP.volume.port_b.m_flow,BOP.volume.port_b.p,BOP.volume.port_b.h_outflow,BOP.volume.V,BOP.volume.energyDynamics,BOP.volume.massDynamics,BOP.volume.substanceDynamics,BOP.volume.traceDynamics,BOP.volume.p_start,BOP.volume.use_T_start,BOP.volume.T_start,BOP.volume.h_start,BOP.volume.X_start[1],BOP.volume.medium.p,BOP.volume.medium.der(p),BOP.volume.medium.h,BOP.volume.medium.der(h),BOP.volume.medium.d,BOP.volume.medium.der(d),BOP.volume.medium.T,BOP.volume.medium.X[1],BOP.volume.medium.u,BOP.volume.medium.der(u),BOP.volume.medium.R,BOP.volume.medium.MM,BOP.volume.medium.state.phase,BOP.volume.medium.state.h,BOP.volume.medium.state.d,BOP.volume.medium.state.T,BOP.volume.medium.state.p,BOP.volume.medium.preferredMediumStates,BOP.volume.medium.standardOrderComponents,BOP.volume.medium.T_degC,BOP.volume.medium.p_bar,BOP.volume.medium.sat.psat,BOP.volume.medium.sat.Tsat,BOP.volume.medium.phase,BOP.volume.m,BOP.volume.der(m),BOP.volume.U,BOP.volume.der(U),BOP.volume.mb,BOP.volume.Ub,BOP.volume.geometry.V,BOP.volume.geometry.angle,BOP.volume.geometry.dheight,BOP.volume.geometry.height_a,BOP.volume.geometry.height_b,BOP.volume.g_n,BOP.volume.use_HeatPort,BOP.volume.Q_gen,BOP.volume.use_TraceMassPort,BOP.volume.showName,BOP.reservoir.port_a.m_flow,BOP.reservoir.port_a.p,BOP.reservoir.port_a.h_outflow,BOP.reservoir.port_b.m_flow,BOP.reservoir.port_b.p,BOP.reservoir.port_b.h_outflow,BOP.reservoir.A,BOP.reservoir.V0,BOP.reservoir.p_surface,BOP.reservoir.allowFlowReversal,BOP.reservoir.energyDynamics,BOP.reservoir.massDynamics,BOP.reservoir.substanceDynamics,BOP.reservoir.traceDynamics,BOP.reservoir.g_n,BOP.reservoir.p_start,BOP.reservoir.level_start,BOP.reservoir.h_start,BOP.reservoir.X_start[1],BOP.reservoir.level,BOP.reservoir.der(level),BOP.reservoir.V,BOP.reservoir.der(V),BOP.reservoir.m,BOP.reservoir.der(m),BOP.reservoir.U,BOP.reservoir.der(U),BOP.reservoir.h,BOP.reservoir.der(h),BOP.reservoir.p,BOP.reservoir.state.phase,BOP.reservoir.state.h,BOP.reservoir.state.d,BOP.reservoir.state.der(d),BOP.reservoir.state.T,BOP.reservoir.state.p,BOP.reservoir.d,BOP.reservoir.T,BOP.reservoir.mb,BOP.reservoir.Ub,BOP.reservoir.use_HeatPort,BOP.reservoir.Q_gen,BOP.reservoir.use_TraceMassPort,BOP.reservoir.showName,BOP.multiPort.nPorts_b,BOP.multiPort.port_a.m_flow,BOP.multiPort.port_a.p,BOP.multiPort.port_a.h_outflow,BOP.multiPort.ports_b[1].m_flow,BOP.multiPort.ports_b[1].p,BOP.multiPort.ports_b[1].h_outflow,BOP.multiPort.ports_b[2].m_flow,BOP.multiPort.ports_b[2].p,BOP.multiPort.ports_b[2].h_outflow,BOP.feedWaterHeater.port_a.m_flow,BOP.feedWaterHeater.port_a.p,BOP.feedWaterHeater.port_a.h_outflow,BOP.feedWaterHeater.port_b.m_flow,BOP.feedWaterHeater.port_b.p,BOP.feedWaterHeater.port_b.h_outflow,BOP.feedWaterHeater.V,BOP.feedWaterHeater.energyDynamics,BOP.feedWaterHeater.massDynamics,BOP.feedWaterHeater.substanceDynamics,BOP.feedWaterHeater.traceDynamics,BOP.feedWaterHeater.p_start,BOP.feedWaterHeater.use_T_start,BOP.feedWaterHeater.T_start,BOP.feedWaterHeater.h_start,BOP.feedWaterHeater.X_start[1],BOP.feedWaterHeater.medium.p,BOP.feedWaterHeater.medium.der(p),BOP.feedWaterHeater.medium.h,BOP.feedWaterHeater.medium.der(h),BOP.feedWaterHeater.medium.d,BOP.feedWaterHeater.medium.der(d),BOP.feedWaterHeater.medium.T,BOP.feedWaterHeater.medium.X[1],BOP.feedWaterHeater.medium.u,BOP.feedWaterHeater.medium.der(u),BOP.feedWaterHeater.medium.R,BOP.feedWaterHeater.medium.MM,BOP.feedWaterHeater.medium.state.phase,BOP.feedWaterHeater.medium.state.h,BOP.feedWaterHeater.medium.state.d,BOP.feedWaterHeater.medium.state.T,BOP.feedWaterHeater.medium.state.p,BOP.feedWaterHeater.medium.preferredMediumStates,BOP.feedWaterHeater.medium.standardOrderComponents,BOP.feedWaterHeater.medium.T_degC,BOP.feedWaterHeater.medium.p_bar,BOP.feedWaterHeater.medium.sat.psat,BOP.feedWaterHeater.medium.sat.Tsat,BOP.feedWaterHeater.medium.phase,BOP.feedWaterHeater.m,BOP.feedWaterHeater.der(m),BOP.feedWaterHeater.U,BOP.feedWaterHeater.der(U),BOP.feedWaterHeater.mb,BOP.feedWaterHeater.Ub,BOP.feedWaterHeater.geometry.V,BOP.feedWaterHeater.geometry.angle,BOP.feedWaterHeater.geometry.dheight,BOP.feedWaterHeater.geometry.height_a,BOP.feedWaterHeater.geometry.height_b,BOP.feedWaterHeater.g_n,BOP.feedWaterHeater.use_HeatPort,BOP.feedWaterHeater.Q_gen,BOP.feedWaterHeater.use_TraceMassPort,BOP.feedWaterHeater.heatPort.T,BOP.feedWaterHeater.heatPort.Q_flow,BOP.feedWaterHeater.showName,BOP.boundary.Q_flow,BOP.boundary.showName,BOP.boundary.Q_flow_ext,BOP.boundary.port.Q_flow,BOP.boundary.port.T,BOP.PID.u_s,BOP.PID.u_m,BOP.PID.y,BOP.PID.controlError,BOP.PID.controllerType,BOP.PID.with_FF,BOP.PID.derMeas,BOP.PID.k,BOP.PID.Ti,BOP.PID.Td,BOP.PID.yb,BOP.PID.k_s,BOP.PID.k_m,BOP.PID.k_ff,BOP.PID.wp,BOP.PID.wd,BOP.PID.Ni,BOP.PID.Nd,BOP.PID.initType,BOP.PID.xi_start,BOP.PID.xd_start,BOP.PID.y_start,BOP.PID.strict,BOP.PID.reset,BOP.PID.y_reset,BOP.PID.addP.u1,BOP.PID.addP.u2,BOP.PID.addP.y,BOP.PID.addP.k1,BOP.PID.addP.k2,BOP.PID.P.k,BOP.PID.P.u,BOP.PID.P.y,BOP.PID.gainPID.k,BOP.PID.gainPID.u,BOP.PID.gainPID.y,BOP.PID.addPID.k1,BOP.PID.addPID.k2,BOP.PID.addPID.k3,BOP.PID.addPID.u1,BOP.PID.addPID.u2,BOP.PID.addPID.u3,BOP.PID.addPID.y,BOP.PID.limiter.strict,BOP.PID.limiter.homotopyType,BOP.PID.limiter.limitsAtInit,BOP.PID.limiter.u,BOP.PID.limiter.y,BOP.PID.Fzero.k,BOP.PID.Fzero.y,BOP.PID.addFF.k1,BOP.PID.addFF.k2,BOP.PID.addFF.k3,BOP.PID.addFF.u1,BOP.PID.addFF.u2,BOP.PID.addFF.u3,BOP.PID.addFF.y,BOP.PID.gain_u_s.k,BOP.PID.gain_u_s.u,BOP.PID.gain_u_s.y,BOP.PID.gain_u_m.k,BOP.PID.gain_u_m.u,BOP.PID.gain_u_m.y,BOP.PID.null_bias.k,BOP.PID.null_bias.y,BOP.realExpression.y,BOP.temperature.allowFlowReversal,BOP.temperature.showName,BOP.temperature.port.m_flow,BOP.temperature.port.p,BOP.temperature.port.h_outflow,BOP.temperature.precision,BOP.temperature.var,BOP.temperature.y,BOP.temperature.T,BOP.multiPort1.nPorts_b,BOP.multiPort1.port_a.m_flow,BOP.multiPort1.port_a.p,BOP.multiPort1.port_a.h_outflow,BOP.multiPort1.port_a.der(h_outflow),BOP.multiPort1.ports_b[1].m_flow,BOP.multiPort1.ports_b[1].p,BOP.multiPort1.ports_b[1].h_outflow,BOP.multiPort1.ports_b[2].m_flow,BOP.multiPort1.ports_b[2].p,BOP.multiPort1.ports_b[2].h_outflow,BOP.multiPort1.ports_b[3].m_flow,BOP.multiPort1.ports_b[3].p,BOP.multiPort1.ports_b[3].h_outflow,BOP.resistance1.port_a.m_flow,BOP.resistance1.port_a.p,BOP.resistance1.port_a.h_outflow,BOP.resistance1.port_b.m_flow,BOP.resistance1.port_b.p,BOP.resistance1.port_b.h_outflow,BOP.resistance1.state.phase,BOP.resistance1.state.h,BOP.resistance1.state.d,BOP.resistance1.state.T,BOP.resistance1.state.p,BOP.resistance1.dp,BOP.resistance1.m_flow,BOP.resistance1.showName,BOP.resistance1.R,BOP.pressure.allowFlowReversal,BOP.pressure.showName,BOP.pressure.port.m_flow,BOP.pressure.port.p,BOP.pressure.port.h_outflow,BOP.pressure.precision,BOP.pressure.var,BOP.pressure.y,BOP.pressure.p,BOP.valve_BV.allowFlowReversal,BOP.valve_BV.showDesignFlowDirection,BOP.valve_BV.showName,BOP.valve_BV.port_a.m_flow,BOP.valve_BV.port_a.p,BOP.valve_BV.port_a.h_outflow,BOP.valve_BV.port_b.m_flow,BOP.valve_BV.port_b.p,BOP.valve_BV.port_b.h_outflow,BOP.valve_BV.dp_start,BOP.valve_BV.m_flow_start,BOP.valve_BV.m_flow_small,BOP.valve_BV.show_T,BOP.valve_BV.show_V_flow,BOP.valve_BV.m_flow,BOP.valve_BV.dp,BOP.valve_BV.V_flow,BOP.valve_BV.port_a_T,BOP.valve_BV.port_b_T,BOP.valve_BV.CvData,BOP.valve_BV.Av,BOP.valve_BV.Kv,BOP.valve_BV.Cv,BOP.valve_BV.dp_nominal,BOP.valve_BV.m_flow_nominal,BOP.valve_BV.rho_nominal,BOP.valve_BV.opening_nominal,BOP.valve_BV.filteredOpening,BOP.valve_BV.riseTime,BOP.valve_BV.leakageOpening,BOP.valve_BV.checkValve,BOP.valve_BV.dp_small,BOP.valve_BV.Kv2Av,BOP.valve_BV.Cv2Av,BOP.valve_BV.opening,BOP.valve_BV.p_nominal,BOP.valve_BV.Fxt_full,BOP.valve_BV.Fxt,BOP.valve_BV.x,BOP.valve_BV.xs,BOP.valve_BV.Y,BOP.valve_BV.p,BOP.valve_BV.Re_turbulent,BOP.valve_BV.use_Re,BOP.valve_BV.dp_turbulent,BOP.volume_bypass.port_a.m_flow,BOP.volume_bypass.port_a.p,BOP.volume_bypass.port_a.h_outflow,BOP.volume_bypass.port_b.m_flow,BOP.volume_bypass.port_b.p,BOP.volume_bypass.port_b.h_outflow,BOP.volume_bypass.V,BOP.volume_bypass.energyDynamics,BOP.volume_bypass.massDynamics,BOP.volume_bypass.substanceDynamics,BOP.volume_bypass.traceDynamics,BOP.volume_bypass.p_start,BOP.volume_bypass.use_T_start,BOP.volume_bypass.T_start,BOP.volume_bypass.h_start,BOP.volume_bypass.X_start[1],BOP.volume_bypass.medium.p,BOP.volume_bypass.medium.der(p),BOP.volume_bypass.medium.h,BOP.volume_bypass.medium.der(h),BOP.volume_bypass.medium.d,BOP.volume_bypass.medium.der(d),BOP.volume_bypass.medium.T,BOP.volume_bypass.medium.X[1],BOP.volume_bypass.medium.u,BOP.volume_bypass.medium.der(u),BOP.volume_bypass.medium.R,BOP.volume_bypass.medium.MM,BOP.volume_bypass.medium.state.phase,BOP.volume_bypass.medium.state.h,BOP.volume_bypass.medium.state.d,BOP.volume_bypass.medium.state.T,BOP.volume_bypass.medium.state.p,BOP.volume_bypass.medium.preferredMediumStates,BOP.volume_bypass.medium.standardOrderComponents,BOP.volume_bypass.medium.T_degC,BOP.volume_bypass.medium.p_bar,BOP.volume_bypass.medium.sat.psat,BOP.volume_bypass.medium.sat.Tsat,BOP.volume_bypass.medium.phase,BOP.volume_bypass.m,BOP.volume_bypass.der(m),BOP.volume_bypass.U,BOP.volume_bypass.der(U),BOP.volume_bypass.mb,BOP.volume_bypass.Ub,BOP.volume_bypass.geometry.V,BOP.volume_bypass.geometry.angle,BOP.volume_bypass.geometry.dheight,BOP.volume_bypass.geometry.height_a,BOP.volume_bypass.geometry.height_b,BOP.volume_bypass.g_n,BOP.volume_bypass.use_HeatPort,BOP.volume_bypass.Q_gen,BOP.volume_bypass.use_TraceMassPort,BOP.volume_bypass.showName,BOP.resistance3.port_a.m_flow,BOP.resistance3.port_a.p,BOP.resistance3.port_a.h_outflow,BOP.resistance3.port_b.m_flow,BOP.resistance3.port_b.p,BOP.resistance3.port_b.h_outflow,BOP.resistance3.state.phase,BOP.resistance3.state.h,BOP.resistance3.state.d,BOP.resistance3.state.T,BOP.resistance3.state.p,BOP.resistance3.dp,BOP.resistance3.m_flow,BOP.resistance3.showName,BOP.resistance3.R,BOP.W_balance1.y,BOP.valve_TCV.allowFlowReversal,BOP.valve_TCV.showDesignFlowDirection,BOP.valve_TCV.showName,BOP.valve_TCV.port_a.m_flow,BOP.valve_TCV.port_a.p,BOP.valve_TCV.port_a.h_outflow,BOP.valve_TCV.port_b.m_flow,BOP.valve_TCV.port_b.p,BOP.valve_TCV.port_b.h_outflow,BOP.valve_TCV.dp_start,BOP.valve_TCV.m_flow_start,BOP.valve_TCV.m_flow_small,BOP.valve_TCV.show_T,BOP.valve_TCV.show_V_flow,BOP.valve_TCV.m_flow,BOP.valve_TCV.dp,BOP.valve_TCV.V_flow,BOP.valve_TCV.port_a_T,BOP.valve_TCV.port_b_T,BOP.valve_TCV.CvData,BOP.valve_TCV.Av,BOP.valve_TCV.Kv,BOP.valve_TCV.Cv,BOP.valve_TCV.dp_nominal,BOP.valve_TCV.m_flow_nominal,BOP.valve_TCV.rho_nominal,BOP.valve_TCV.opening_nominal,BOP.valve_TCV.filteredOpening,BOP.valve_TCV.riseTime,BOP.valve_TCV.leakageOpening,BOP.valve_TCV.checkValve,BOP.valve_TCV.dp_small,BOP.valve_TCV.Kv2Av,BOP.valve_TCV.Cv2Av,BOP.valve_TCV.opening,BOP.valve_TCV.p_nominal,BOP.valve_TCV.Fxt_full,BOP.valve_TCV.Fxt,BOP.valve_TCV.x,BOP.valve_TCV.xs,BOP.valve_TCV.Y,BOP.valve_TCV.p,BOP.valve_TCV.Re_turbulent,BOP.valve_TCV.use_Re,BOP.valve_TCV.dp_turbulent,BOP.header.nPorts_a,BOP.header.nPorts_b,BOP.header.port_a[1].m_flow,BOP.header.port_a[1].p,BOP.header.port_a[1].h_outflow,BOP.header.port_b[1].m_flow,BOP.header.port_b[1].p,BOP.header.port_b[1].h_outflow,BOP.header.port_b[2].m_flow,BOP.header.port_b[2].p,BOP.header.port_b[2].h_outflow,BOP.header.port_b[3].m_flow,BOP.header.port_b[3].p,BOP.header.port_b[3].h_outflow,BOP.header.V,BOP.header.energyDynamics,BOP.header.massDynamics,BOP.header.substanceDynamics,BOP.header.traceDynamics,BOP.header.p_start,BOP.header.use_T_start,BOP.header.T_start,BOP.header.h_start,BOP.header.X_start[1],BOP.header.medium.p,BOP.header.medium.der(p),BOP.header.medium.h,BOP.header.medium.der(h),BOP.header.medium.d,BOP.header.medium.T,BOP.header.medium.X[1],BOP.header.medium.u,BOP.header.medium.der(u),BOP.header.medium.R,BOP.header.medium.MM,BOP.header.medium.state.phase,BOP.header.medium.state.h,BOP.header.medium.state.d,BOP.header.medium.state.T,BOP.header.medium.state.p,BOP.header.medium.preferredMediumStates,BOP.header.medium.standardOrderComponents,BOP.header.medium.T_degC,BOP.header.medium.p_bar,BOP.header.medium.sat.psat,BOP.header.medium.sat.Tsat,BOP.header.medium.phase,BOP.header.m,BOP.header.der(m),BOP.header.U,BOP.header.der(U),BOP.header.mb,BOP.header.Ub,BOP.header.geometry.V,BOP.header.geometry.angle,BOP.header.geometry.dheight,BOP.header.geometry.height_a,BOP.header.geometry.height_b,BOP.header.g_n,BOP.header.H_flows_a[1],BOP.header.H_flows_b[1],BOP.header.H_flows_b[2],BOP.header.H_flows_b[3],BOP.header.use_HeatPort,BOP.header.Q_gen,BOP.header.use_TraceMassPort,BOP.header.showName,BOP.resistance4.port_a.m_flow,BOP.resistance4.port_a.p,BOP.resistance4.port_a.h_outflow,BOP.resistance4.port_b.m_flow,BOP.resistance4.port_b.p,BOP.resistance4.port_b.h_outflow,BOP.resistance4.state.phase,BOP.resistance4.state.h,BOP.resistance4.state.d,BOP.resistance4.state.T,BOP.resistance4.state.p,BOP.resistance4.dp,BOP.resistance4.m_flow,BOP.resistance4.showName,BOP.resistance4.R,BOP.boundary_a3[1].showName,BOP.boundary_a3[1].nPorts,BOP.boundary_a3[1].medium.p,BOP.boundary_a3[1].medium.h,BOP.boundary_a3[1].medium.d,BOP.boundary_a3[1].medium.T,BOP.boundary_a3[1].medium.X[1],BOP.boundary_a3[1].medium.u,BOP.boundary_a3[1].medium.R,BOP.boundary_a3[1].medium.MM,BOP.boundary_a3[1].medium.state.phase,BOP.boundary_a3[1].medium.state.h,BOP.boundary_a3[1].medium.state.d,BOP.boundary_a3[1].medium.state.T,BOP.boundary_a3[1].medium.state.p,BOP.boundary_a3[1].medium.preferredMediumStates,BOP.boundary_a3[1].medium.standardOrderComponents,BOP.boundary_a3[1].medium.T_degC,BOP.boundary_a3[1].medium.p_bar,BOP.boundary_a3[1].medium.sat.psat,BOP.boundary_a3[1].medium.sat.Tsat,BOP.boundary_a3[1].medium.phase,BOP.boundary_a3[1].ports[1].m_flow,BOP.boundary_a3[1].ports[1].p,BOP.boundary_a3[1].ports[1].h_outflow,BOP.boundary_a3[1].p,BOP.boundary_a3[1].h,BOP.boundary_a3[1].X[1],BOP.checkValve[1].allowFlowReversal,BOP.checkValve[1].showDesignFlowDirection,BOP.checkValve[1].showName,BOP.checkValve[1].port_a.m_flow,BOP.checkValve[1].port_a.p,BOP.checkValve[1].port_a.h_outflow,BOP.checkValve[1].port_b.m_flow,BOP.checkValve[1].port_b.p,BOP.checkValve[1].port_b.h_outflow,BOP.checkValve[1].R,BOP.checkValve[1].checkValve,BOP.checkValve[1].m_flow_start,BOP.checkValve[1].m_flow,BOP.boundary_m_flow_a3[1].showName,BOP.boundary_m_flow_a3[1].nPorts,BOP.boundary_m_flow_a3[1].medium.p,BOP.boundary_m_flow_a3[1].medium.h,BOP.boundary_m_flow_a3[1].medium.d,BOP.boundary_m_flow_a3[1].medium.T,BOP.boundary_m_flow_a3[1].medium.X[1],BOP.boundary_m_flow_a3[1].medium.u,BOP.boundary_m_flow_a3[1].medium.R,BOP.boundary_m_flow_a3[1].medium.MM,BOP.boundary_m_flow_a3[1].medium.state.phase,BOP.boundary_m_flow_a3[1].medium.state.h,BOP.boundary_m_flow_a3[1].medium.state.d,BOP.boundary_m_flow_a3[1].medium.state.T,BOP.boundary_m_flow_a3[1].medium.state.p,BOP.boundary_m_flow_a3[1].medium.preferredMediumStates,BOP.boundary_m_flow_a3[1].medium.standardOrderComponents,BOP.boundary_m_flow_a3[1].medium.T_degC,BOP.boundary_m_flow_a3[1].medium.p_bar,BOP.boundary_m_flow_a3[1].medium.sat.psat,BOP.boundary_m_flow_a3[1].medium.sat.Tsat,BOP.boundary_m_flow_a3[1].medium.phase,BOP.boundary_m_flow_a3[1].ports[1].m_flow,BOP.boundary_m_flow_a3[1].ports[1].der(m_flow),BOP.boundary_m_flow_a3[1].ports[1].p,BOP.boundary_m_flow_a3[1].ports[1].h_outflow,BOP.boundary_m_flow_a3[1].m_flow,BOP.boundary_m_flow_a3[1].h,BOP.boundary_m_flow_a3[1].X[1],BOP.boundary_m_flow_a3[1].m_flow_in,BOP.boundary_m_flow_a3[1].h_in,BOP.massFlowRate[1].allowFlowReversal,BOP.massFlowRate[1].showName,BOP.massFlowRate[1].port_a.m_flow,BOP.massFlowRate[1].port_a.p,BOP.massFlowRate[1].port_a.h_outflow,BOP.massFlowRate[1].port_b.m_flow,BOP.massFlowRate[1].port_b.p,BOP.massFlowRate[1].port_b.h_outflow,BOP.massFlowRate[1].m_flow_small,BOP.massFlowRate[1].precision,BOP.massFlowRate[1].var,BOP.massFlowRate[1].y,BOP.massFlowRate[1].m_flow,BOP.specificEnthalpy[1].allowFlowReversal,BOP.specificEnthalpy[1].showName,BOP.specificEnthalpy[1].port_a.m_flow,BOP.specificEnthalpy[1].port_a.p,BOP.specificEnthalpy[1].port_a.h_outflow,BOP.specificEnthalpy[1].port_b.m_flow,BOP.specificEnthalpy[1].port_b.p,BOP.specificEnthalpy[1].port_b.h_outflow,BOP.specificEnthalpy[1].m_flow_small,BOP.specificEnthalpy[1].precision,BOP.specificEnthalpy[1].var,BOP.specificEnthalpy[1].y,BOP.specificEnthalpy[1].h_out,BOP.powerSensor.flange_a.phi,BOP.powerSensor.flange_a.der(phi),BOP.powerSensor.flange_a.tau,BOP.powerSensor.flange_b.phi,BOP.powerSensor.flange_b.tau,BOP.powerSensor.power,BOP.resistance2.port_a.m_flow,BOP.resistance2.port_a.p,BOP.resistance2.port_a.h_outflow,BOP.resistance2.port_b.m_flow,BOP.resistance2.port_b.p,BOP.resistance2.port_b.h_outflow,BOP.resistance2.state.phase,BOP.resistance2.state.h,BOP.resistance2.state.d,BOP.resistance2.state.T,BOP.resistance2.state.p,BOP.resistance2.dp,BOP.resistance2.m_flow,BOP.resistance2.showName,BOP.resistance2.R,BOP.PID1.u_s,BOP.PID1.u_m,BOP.PID1.y,BOP.PID1.controllerType,BOP.PID1.derMeas,BOP.PID1.k,BOP.PID1.Ti,BOP.PID1.Td,BOP.PID1.yb,BOP.PID1.k_s,BOP.PID1.k_m,BOP.PID1.yMin,BOP.PID1.wp,BOP.PID1.wd,BOP.PID1.Ni,BOP.PID1.Nd,BOP.PID1.initType,BOP.PID1.xi_start,BOP.PID1.xd_start,BOP.PID1.y_start,BOP.PID1.strict,BOP.PID1.eOn,BOP.PID1.eOff,BOP.PID1.pre_y_start,BOP.PID1.PID.u_s,BOP.PID1.PID.u_m,BOP.PID1.PID.y,BOP.PID1.PID.controlError,BOP.PID1.PID.controllerType,BOP.PID1.PID.with_FF,BOP.PID1.PID.derMeas,BOP.PID1.PID.k,BOP.PID1.PID.Ti,BOP.PID1.PID.Td,BOP.PID1.PID.yb,BOP.PID1.PID.k_s,BOP.PID1.PID.k_m,BOP.PID1.PID.k_ff,BOP.PID1.PID.yMin,BOP.PID1.PID.wp,BOP.PID1.PID.wd,BOP.PID1.PID.Ni,BOP.PID1.PID.Nd,BOP.PID1.PID.initType,BOP.PID1.PID.xi_start,BOP.PID1.PID.xd_start,BOP.PID1.PID.y_start,BOP.PID1.PID.strict,BOP.PID1.PID.reset,BOP.PID1.PID.y_reset,BOP.PID1.PID.addP.u1,BOP.PID1.PID.addP.u2,BOP.PID1.PID.addP.y,BOP.PID1.PID.addP.k1,BOP.PID1.PID.addP.k2,BOP.PID1.PID.P.k,BOP.PID1.PID.P.u,BOP.PID1.PID.P.y,BOP.PID1.PID.gainPID.k,BOP.PID1.PID.gainPID.u,BOP.PID1.PID.gainPID.y,BOP.PID1.PID.addPID.k1,BOP.PID1.PID.addPID.k2,BOP.PID1.PID.addPID.k3,BOP.PID1.PID.addPID.u1,BOP.PID1.PID.addPID.u2,BOP.PID1.PID.addPID.u3,BOP.PID1.PID.addPID.y,BOP.PID1.PID.limiter.uMin,BOP.PID1.PID.limiter.strict,BOP.PID1.PID.limiter.homotopyType,BOP.PID1.PID.limiter.limitsAtInit,BOP.PID1.PID.limiter.u,BOP.PID1.PID.limiter.y,BOP.PID1.PID.Fzero.k,BOP.PID1.PID.Fzero.y,BOP.PID1.PID.addFF.k1,BOP.PID1.PID.addFF.k2,BOP.PID1.PID.addFF.k3,BOP.PID1.PID.addFF.u1,BOP.PID1.PID.addFF.u2,BOP.PID1.PID.addFF.u3,BOP.PID1.PID.addFF.y,BOP.PID1.PID.gain_u_s.k,BOP.PID1.PID.gain_u_s.u,BOP.PID1.PID.gain_u_s.y,BOP.PID1.PID.gain_u_m.k,BOP.PID1.PID.gain_u_m.u,BOP.PID1.PID.gain_u_m.y,BOP.PID1.PID.null_bias.k,BOP.PID1.PID.null_bias.y,BOP.PID1.hys.uLow,BOP.PID1.hys.uHigh,BOP.PID1.hys.pre_y_start,BOP.PID1.hys.u,BOP.PID1.hys.y,BOP.PID1.feeBac.u1,BOP.PID1.feeBac.u2,BOP.PID1.feeBac.y,BOP.level_setpoint.y,BOP.level_measure.y,BOP.boundary2.showName,BOP.boundary2.nPorts,BOP.boundary2.medium.p,BOP.boundary2.medium.h,BOP.boundary2.medium.d,BOP.boundary2.medium.T,BOP.boundary2.medium.X[1],BOP.boundary2.medium.u,BOP.boundary2.medium.R,BOP.boundary2.medium.MM,BOP.boundary2.medium.state.phase,BOP.boundary2.medium.state.h,BOP.boundary2.medium.state.d,BOP.boundary2.medium.state.T,BOP.boundary2.medium.state.p,BOP.boundary2.medium.preferredMediumStates,BOP.boundary2.medium.standardOrderComponents,BOP.boundary2.medium.T_degC,BOP.boundary2.medium.p_bar,BOP.boundary2.medium.sat.psat,BOP.boundary2.medium.sat.Tsat,BOP.boundary2.medium.phase,BOP.boundary2.ports[1].m_flow,BOP.boundary2.ports[1].p,BOP.boundary2.ports[1].h_outflow,BOP.boundary2.m_flow,BOP.boundary2.T,BOP.boundary2.X[1],BOP.boundary2.m_flow_in,BOP.CS.PID_TCV_opening.I.u,BOP.CS.PID_TCV_opening.I.y,BOP.CS.PID_TCV_opening.I.der(y),BOP.CS.PID_TCV_opening.I.k,BOP.CS.PID_TCV_opening.I.initType,BOP.CS.PID_TCV_opening.I.y_start,BOP.CS.PID_TCV_opening.I.reset,BOP.CS.PID_TCV_opening.I.y_reset,BOP.CS.PID_TCV_opening.addI.k1,BOP.CS.PID_TCV_opening.addI.k2,BOP.CS.PID_TCV_opening.addI.k3,BOP.CS.PID_TCV_opening.addI.u1,BOP.CS.PID_TCV_opening.addI.u2,BOP.CS.PID_TCV_opening.addI.u3,BOP.CS.PID_TCV_opening.addI.y,BOP.CS.PID_TCV_opening.addSat.u1,BOP.CS.PID_TCV_opening.addSat.u2,BOP.CS.PID_TCV_opening.addSat.y,BOP.CS.PID_TCV_opening.addSat.k1,BOP.CS.PID_TCV_opening.addSat.k2,BOP.CS.PID_TCV_opening.gainTrack.k,BOP.CS.PID_TCV_opening.gainTrack.u,BOP.CS.PID_TCV_opening.gainTrack.y,BOP.CS.PID_TCV_opening.Dzero.k,BOP.CS.PID_TCV_opening.Dzero.y,BOP.CS.PID_BV_opening.I.u,BOP.CS.PID_BV_opening.I.y,BOP.CS.PID_BV_opening.I.der(y),BOP.CS.PID_BV_opening.I.k,BOP.CS.PID_BV_opening.I.initType,BOP.CS.PID_BV_opening.I.y_start,BOP.CS.PID_BV_opening.I.reset,BOP.CS.PID_BV_opening.I.y_reset,BOP.CS.PID_BV_opening.addI.k1,BOP.CS.PID_BV_opening.addI.k2,BOP.CS.PID_BV_opening.addI.k3,BOP.CS.PID_BV_opening.addI.u1,BOP.CS.PID_BV_opening.addI.u2,BOP.CS.PID_BV_opening.addI.u3,BOP.CS.PID_BV_opening.addI.y,BOP.CS.PID_BV_opening.addSat.u1,BOP.CS.PID_BV_opening.addSat.u2,BOP.CS.PID_BV_opening.addSat.y,BOP.CS.PID_BV_opening.addSat.k1,BOP.CS.PID_BV_opening.addSat.k2,BOP.CS.PID_BV_opening.gainTrack.k,BOP.CS.PID_BV_opening.gainTrack.u,BOP.CS.PID_BV_opening.gainTrack.y,BOP.CS.PID_BV_opening.Dzero.k,BOP.CS.PID_BV_opening.Dzero.y,BOP.PID.I.u,BOP.PID.I.y,BOP.PID.I.der(y),BOP.PID.I.k,BOP.PID.I.initType,BOP.PID.I.y_start,BOP.PID.I.reset,BOP.PID.I.y_reset,BOP.PID.addI.k1,BOP.PID.addI.k2,BOP.PID.addI.k3,BOP.PID.addI.u1,BOP.PID.addI.u2,BOP.PID.addI.u3,BOP.PID.addI.y,BOP.PID.addSat.u1,BOP.PID.addSat.u2,BOP.PID.addSat.y,BOP.PID.addSat.k1,BOP.PID.addSat.k2,BOP.PID.gainTrack.k,BOP.PID.gainTrack.u,BOP.PID.gainTrack.y,BOP.PID.Dzero.k,BOP.PID.Dzero.y,BOP.PID1.PID.I.u,BOP.PID1.PID.I.y,BOP.PID1.PID.I.der(y),BOP.PID1.PID.I.k,BOP.PID1.PID.I.initType,BOP.PID1.PID.I.y_start,BOP.PID1.PID.I.reset,BOP.PID1.PID.I.y_reset,BOP.PID1.PID.addI.k1,BOP.PID1.PID.addI.k2,BOP.PID1.PID.addI.k3,BOP.PID1.PID.addI.u1,BOP.PID1.PID.addI.u2,BOP.PID1.PID.addI.u3,BOP.PID1.PID.addI.y,BOP.PID1.PID.addSat.u1,BOP.PID1.PID.addSat.u2,BOP.PID1.PID.addSat.y,BOP.PID1.PID.addSat.k1,BOP.PID1.PID.addSat.k2,BOP.PID1.PID.gainTrack.k,BOP.PID1.PID.gainTrack.u,BOP.PID1.PID.gainTrack.y,BOP.PID1.PID.Dzero.k,BOP.PID1.PID.Dzero.y
+	</Group>
+    <Group name="outputvars">BOP.portElec_b.W,BOP.steamTurbine.portHP.p</Group>
+    <Group name="actuatorvars">SC.demand_BOP.y[1]</Group>
+    <Group name="PCADimensions">PCADimension1,PCADimension2,PCADimension3,PCADimension4,PCADimension5,PCADimension6,PCADimension7,PCADimension8,PCADimension9,PCADimension10,PCADimension11,PCADimension12,PCADimension13,PCADimension14,PCADimension15,PCADimension16,PCADimension17,PCADimension18,PCADimension19,PCADimension20,PCADimension21,PCADimension22,PCADimension23,PCADimension24,PCADimension25,PCADimension26,PCADimension27,PCADimension28,PCADimension29,PCADimension30</Group>
+  </VariableGroups>
+  
+  <Files>
+    <Input name="DataSetsFile">../BOP_Dymola.csv</Input>
+	<Input name="TrainDataFile">printTrainingSet.csv</Input>
+    <Input name="ROMpk" type="">ROMpk</Input>
+	<Input name="ABCMatrices" type="">DMDcCxCoeff.xml</Input>
+  </Files>
+  
+  <Models>
+    <PostProcessor name="FeatureSelectionRFE" subType="FeatureSelection">
+      <what>RFE</what>
+      <features>PCADimensions</features>
+      <targets>outputvars</targets>
+      <minimumNumberOfFeatures>14</minimumNumberOfFeatures>
+      <aggregateTargets>True</aggregateTargets>
+    </PostProcessor>
+    
+	<PostProcessor name="PCA" subType="DataMining" verbosity="quiet">
+      <KDD lib="SciKitLearn">
+        <Features>allInputVars</Features>
+        <SKLtype>decomposition|PCA</SKLtype>
+        <n_components>30</n_components>
+      </KDD>
+    </PostProcessor>
+    
+	<PostProcessor name="DataObjectVariablesSelector" subType="DataObjectVariablesSelector" verbosity="quiet">
+      <target>FeatureSelectionRFE_BOP.portElec_b.W</target>
+      <variableDataObject>pp_out</variableDataObject>
+    </PostProcessor>
+    
+	<ROM name="DMDrom" subType="DMDC">
+	  <Target>Time,BOP.portElec_b.W,BOP.steamTurbine.portHP.p</Target>
+	  <!-- If Target only contains Time, Calculate A and B only -->
+	  <!-- If Target contains y(s) beside Time, Calculate A, B and C -->
+      <Features>SC.demand_BOP.y[1],PCADimension1,PCADimension9,PCADimension25,PCADimension27,PCADimension12,PCADimension2,PCADimension8,PCADimension10,PCADimension11,PCADimension23,PCADimension29,PCADimension24,PCADimension6,PCADimension13</Features>
+	  <!-- Features include all the u(s) and x(s) -->
+      <Actuators>SC.demand_BOP.y[1]</Actuators>
+	  <pivotParameter>Time</pivotParameter>   
+      <rankSVD>-1</rankSVD>
+	  <!-- rankSVD: -1 = No truncation; 0 = optimized truncation; pos. int = truncation level -->
+	  <SubtractNormUXY>True</SubtractNormUXY>
+	  <!-- SubtractNormUXY: True = will subtract the initial values from U,X,Y -->
+    </ROM>
+	
+    <ExternalModel name="RG1" subType="RefGov.RefGov_SIMO">
+	  <variables> P1, V1, V1min, V1max </variables>
+	  <!-- 4 variables: Issued Setpoint(P1), Adjusted Setpoint(V1), bounds of V1(V1min & V1max) -->
+	  <constant varName="Min_Target1"> 7.5E8</constant> 
+	  <constant varName="Max_Target1"> 1.5E9</constant> 
+	  <constant varName="Min_Target2"> 65.8E5 </constant> 
+	  <constant varName="Max_Target2"> 66.8E5 </constant> 
+	  <!-- lower and upper bounds for y vector, will be internally checked -->
+	  <constant varName="MOASsteps"> 10 </constant>
+	  <!-- steps in MOAS calculation, "g" value -->
+      <outputVariable>V1, V1min, V1max </outputVariable>
+	  <!-- 3 output variables -->  
+    </ExternalModel> 
+  </Models>
+  
+  <Distributions>
+    <Uniform name="one">
+        <lowerBound>1.35E9</lowerBound>
+        <upperBound>1.50E9</upperBound>
+    </Uniform>
+	<!-- distribution for P1 sampling -->
+  </Distributions>
+
+   <Samplers>
+    <MonteCarlo name="RG_Sampler">
+      <samplerInit>
+        <limit>10</limit>
+      </samplerInit>
+      <variable name="P1">
+        <distribution>one</distribution>
+      </variable>
+    </MonteCarlo>
+	<!-- A MonteCarlo sampler for P1 sampling  -->
+  </Samplers>
+
+  <Steps>
+    <IOStep name="readIn"  >
+      <Input class="Files" type="">DataSetsFile</Input>
+      <Output class="DataObjects" type="PointSet">DataSetsRaw</Output>
+    </IOStep>
+    <PostProcess name="prePCA"  >
+      <Input class="DataObjects" type="PointSet">DataSetsRaw</Input>
+      <Model class="Models" type="PostProcessor">PCA</Model>
+      <SolutionExport class="DataObjects" type="PointSet">drInfo</SolutionExport>
+      <Output class="DataObjects" type="PointSet">DataSets</Output>
+      <!-- <Output class="OutStreams" type="Print">PrintDataSet</Output>  -->
+      <!-- <Output class="OutStreams" type="Print">info</Output> -->
+    </PostProcess>
+    <PostProcess name="selectFeatures"  >
+      <Input class="DataObjects" type="PointSet">DataSets</Input>
+      <Model class="Models" type="PostProcessor">FeatureSelectionRFE</Model>
+      <Output class="DataObjects" type="PointSet">pp_out</Output>
+      <Output class="OutStreams" type="Print">printpp</Output>
+    </PostProcess>
+    <PostProcess name="extractFeatures"  >
+      <Input class="DataObjects" type="PointSet">pp_out</Input>
+      <Input class="DataObjects" type="PointSet">DataSets</Input>
+      <Model class="Models" type="PostProcessor">DataObjectVariablesSelector</Model>
+      <Output class="DataObjects" type="PointSet">TrainingSet</Output>
+      <Output class="OutStreams" type="Print">printTrainingSet</Output>
+    </PostProcess>
+    <IOStep name="readTrainData">
+      <Input class="Files" type="">TrainDataFile</Input>
+      <Output class="DataObjects" type="PointSet">TrainData</Output>
+    </IOStep>
+	<RomTrainer name="DMDCTrain">
+      <Input class="DataObjects" type="PointSet">TrainData</Input>
+      <Output class="Models" type="ROM">DMDrom</Output>
+    </RomTrainer>
+    <IOStep name="pickleRom">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="Files" type="">ROMpk</Output>
+    </IOStep>
+    <IOStep name="stats">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="DataObjects" type="DataSet">rom_stats</Output>
+    </IOStep>
+    <IOStep name="writeOut" pauseAtEnd="True">
+      <Input class="DataObjects" type="DataSet">rom_stats</Input>
+      <Output class="OutStreams" type="Print">DMDcCxCoeff</Output>
+    </IOStep>
+	
+    <MultiRun name="RGrun">
+	  <Input		  class="DataObjects"   type="PointSet">RGInput</Input>
+      <Input 		  class="Files" 		type="">ABCMatrices</Input>
+      <Model          class="Models"        type="ExternalModel">RG1</Model>
+	  <Sampler		  class="Samplers"		type="MonteCarlo">RG_Sampler</Sampler>
+      <Output         class="DataObjects"   type="PointSet">RGOutput</Output>
+    </MultiRun>
+	<!-- MultiRun step to execute the plugin for multiple times -->
+	
+    <IOStep name="printTOfile">
+		<Input          class="DataObjects"   type="PointSet">RGOutput</Input>
+		<Output         class="OutStreams"    type="Print">RefGovOutput</Output>
+	</IOStep>
+	<!-- IOStep to dump the RGOutput to RefGovOutput.csv-->
+ 
+  </Steps>
+
+  <DataObjects>
+    <PointSet name="DataSetsRaw">
+      <Input>allInputVars</Input>
+      <Output>outputvars,Time,actuatorvars</Output>
+    </PointSet>
+    <PointSet name="DataSets">
+      <Input>allInputVars</Input>
+      <Output>outputvars,PCADimensions,Time,actuatorvars</Output>
+    </PointSet>
+    <PointSet name="drInfo">
+      <Input>allInputVars,PCADimension</Input>
+    </PointSet>
+    <PointSet name="pp_out">
+      <Output>FeatureSelectionRFE_BOP.portElec_b.W,FeatureSelectionRFE_BOP.steamTurbine.portHP.p</Output>
+    </PointSet>
+    <PointSet name="TrainingSet">
+	  <Input>
+	  PCADimension1,PCADimension9,PCADimension25,PCADimension27,PCADimension12,PCADimension2,PCADimension8,PCADimension10,PCADimension11,PCADimension23,PCADimension29,PCADimension24,PCADimension6,PCADimension13
+	  </Input>
+	  
+      <Output>outputvars,Time,actuatorvars</Output>
+    </PointSet>
+    
+	<PointSet name="TrainData">
+      <Input>Time</Input>
+      <Output>SC.demand_BOP.y[1],BOP.portElec_b.W,BOP.steamTurbine.portHP.p,PCADimension1,PCADimension9,PCADimension25,PCADimension27,PCADimension12,PCADimension2,PCADimension8,PCADimension10,PCADimension11,PCADimension23,PCADimension29,PCADimension24,PCADimension6,PCADimension13</Output>
+    </PointSet>
+	<!-- pointset for DMDc training -->
+    <DataSet name="rom_stats"/>
+	<!-- ROM statistics -->
+    <PointSet name="RGInput">
+      <Input>P1 </Input>
+      <Output>OutputPlaceHolder</Output>
+    </PointSet>
+    <PointSet name="RGOutput">
+      <Input>P1 </Input>
+      <Output>V1, V1min, V1max </Output>
+    </PointSet>
+
+  </DataObjects>
+ 
+  <OutStreams>
+    <Print name="info">
+      <type>csv</type>
+      <source>drInfo</source>
+    </Print>
+    <Print name="printpp">
+      <type>csv</type>
+      <source>pp_out</source>
+    </Print>
+    <Print name="printTrainingSet">
+      <type>csv</type>
+      <source>TrainingSet</source>
+    </Print>
+    <Print name="PrintDataSet">
+      <type>csv</type>
+      <source>DataSets</source>
+    </Print>
+    <Print name="DMDcCxCoeff">
+      <type>csv</type>
+      <source>rom_stats</source>
+    </Print>	
+    <Print name="RefGovOutput">
+      <type>csv</type>
+      <source>RGOutput</source>
+      <what>input,output</what>
+    </Print>
+  </OutStreams>
+
+</Simulation>

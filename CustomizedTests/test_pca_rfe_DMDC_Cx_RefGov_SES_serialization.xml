@@ -1,0 +1,245 @@
+<?xml version="1.0" ?>
+<Simulation verbosity="all">
+  <RunInfo>
+    <WorkingDir>PCA_RFE_DMDC_RefGov_SES</WorkingDir>
+    <!-- <Sequence>readIn,prePCA,selectFeatures</Sequence> -->
+    <Sequence>
+		readIn,
+		prePCA,
+		selectFeatures,
+		extractFeatures,
+		readTrainData,
+		DMDCTrain,
+        pickleRom,
+        stats,
+        writeOut,
+		RGrun,
+		printTOfile,
+        serializeReferenceGov</Sequence>
+    <batchSize>1</batchSize>
+  </RunInfo>
+  
+  <VariableGroups>
+    <Group name="allInputVars">SES.CS.sensorBus.W_gen,SES.CS.sensorBus.m_flow_fuel,SES.CS.sensorBus.m_flow_CO2,SES.CS.sensorBus.Q_balance,SES.CS.sensorBus.W_balance,SES.CS.delayStart,SES.CS.capacityScaler,SES.CS.W_SES_nom,SES.CS.W_totalSetpoint,SES.CS.feedback_W_gen.u1,SES.CS.feedback_W_gen.u2,SES.CS.feedback_W_gen.y,SES.CS.FBctrl_powerGeneration.k,SES.CS.FBctrl_powerGeneration.T,SES.CS.FBctrl_powerGeneration.initType,SES.CS.FBctrl_powerGeneration.x_start,SES.CS.FBctrl_powerGeneration.y_start,SES.CS.FBctrl_powerGeneration.u,SES.CS.FBctrl_powerGeneration.y,SES.CS.FBctrl_powerGeneration.x,SES.CS.FBctrl_powerGeneration.der(x),SES.CS.clock.y,SES.CS.clock.offset,SES.CS.clock.startTime,SES.CS.lessThreshold.threshold,SES.CS.lessThreshold.u,SES.CS.lessThreshold.y,SES.CS.W_SES_nominal.k,SES.CS.W_SES_nominal.y,SES.CS.switch.u1,SES.CS.switch.u2,SES.CS.switch.u3,SES.CS.switch.y,SES.CS.scaler.k,SES.CS.scaler.u,SES.CS.scaler.y,SES.CS.W_totalSetpoint_SES.y,SES.ED.sensorBus.W_gen,SES.ED.sensorBus.m_flow_fuel,SES.ED.sensorBus.m_flow_CO2,SES.ED.sensorBus.Q_balance,SES.ED.sensorBus.W_balance,SES.sensorBus.W_gen,SES.sensorBus.m_flow_fuel,SES.sensorBus.m_flow_CO2,SES.sensorBus.Q_balance,SES.sensorBus.W_balance,SES.Q_balance.y,SES.W_balance.y,SES.portElec_b.f,SES.system.p_ambient,SES.system.T_ambient,SES.system.g,SES.system.allowFlowReversal,SES.system.energyDynamics,SES.system.massDynamics,SES.system.substanceDynamics,SES.system.traceDynamics,SES.system.momentumDynamics,SES.system.m_flow_start,SES.system.p_start,SES.system.T_start,SES.system.use_eps_Re,SES.system.m_flow_nominal,SES.system.eps_m_flow,SES.system.dp_small,SES.system.m_flow_small,SES.capacity_nom,SES.capacity,SES.capacityScaler,SES.KG,SES.TG,SES.T_rotorAccel,SES.rotorAccel_max_pu,SES.rotorAccel_min_pu,SES.TV,SES.TF,SES.wf_pu_max,SES.wf_pu_min,SES.TW,SES.IGVangleRamp_max_pu,SES.IGVangleRamp_min_pu,SES.IGVangle_max_pu,SES.IGVangle_min_pu,SES.T_Tf,SES.Tr_max_pu,SES.Tr_min_pu,SES.T_Te,SES.TI_Te,SES.Te_max_pu,SES.Te_min_pu,SES.GTunit.allowFlowReversal,SES.GTunit.PR0,SES.GTunit.eta_mech,SES.GTunit.Nrpm0,SES.GTunit.N0,SES.GTunit.J,SES.GTunit.explicitIsentropicEnthalpy_comp,SES.GTunit.eta0_comp,SES.GTunit.w0_comp,SES.GTunit.V,SES.GTunit.LHV,SES.GTunit.eta0_comb,SES.GTunit.w0_comb,SES.GTunit.w_noLoad,SES.GTunit.w_min,SES.GTunit.Tf0,SES.GTunit.explicitIsentropicEnthalpy_turb,SES.GTunit.eta0_turb,SES.GTunit.w0_turb,SES.GTunit.Te0,SES.GTunit.pstart_comp_in,SES.GTunit.Tstart_comp_in,SES.GTunit.Tstart_comp_out,SES.GTunit.pstart_turb_out,SES.GTunit.Tstart_turb_out,SES.GTunit.Tstart_comb,SES.GTunit.phi_start,SES.GTunit.W,SES.GTunit.phi,SES.GTunit.der(phi),SES.GTunit.tau,SES.GTunit.omega,SES.GTunit.combChamber.allowFlowReversal,SES.GTunit.combChamber.V,SES.GTunit.combChamber.S,SES.GTunit.combChamber.gamma,SES.GTunit.combChamber.Cm,SES.GTunit.combChamber.Tm_start,SES.GTunit.combChamber.LHV,SES.GTunit.combChamber.pstart,SES.GTunit.combChamber.Tstart,SES.GTunit.combChamber.Xstart[1],SES.GTunit.combChamber.Xstart[2],SES.GTunit.combChamber.Xstart[3],SES.GTunit.combChamber.Xstart[4],SES.GTunit.combChamber.Xstart[5],SES.GTunit.combChamber.state_air.p,SES.GTunit.combChamber.state_air.T,SES.GTunit.combChamber.state_air.X[1],SES.GTunit.combChamber.state_air.X[2],SES.GTunit.combChamber.state_air.X[3],SES.GTunit.combChamber.state_air.X[4],SES.GTunit.combChamber.fluegas.p,SES.GTunit.combChamber.fluegas.der(p),SES.GTunit.combChamber.fluegas.Xi[1],SES.GTunit.combChamber.fluegas.Xi[2],SES.GTunit.combChamber.fluegas.Xi[3],SES.GTunit.combChamber.fluegas.Xi[4],SES.GTunit.combChamber.fluegas.Xi[5],SES.GTunit.combChamber.fluegas.der(Xi[1]),SES.GTunit.combChamber.fluegas.der(Xi[2]),SES.GTunit.combChamber.fluegas.der(Xi[3]),SES.GTunit.combChamber.fluegas.der(Xi[4]),SES.GTunit.combChamber.fluegas.der(Xi[5]),SES.GTunit.combChamber.fluegas.h,SES.GTunit.combChamber.fluegas.d,SES.GTunit.combChamber.fluegas.der(d),SES.GTunit.combChamber.fluegas.T,SES.GTunit.combChamber.fluegas.der(T),SES.GTunit.combChamber.fluegas.X[1],SES.GTunit.combChamber.fluegas.X[2],SES.GTunit.combChamber.fluegas.X[3],SES.GTunit.combChamber.fluegas.X[4],SES.GTunit.combChamber.fluegas.X[5],SES.GTunit.combChamber.fluegas.u,SES.GTunit.combChamber.fluegas.der(u),SES.GTunit.combChamber.fluegas.R,SES.GTunit.combChamber.fluegas.der(R),SES.GTunit.combChamber.fluegas.MM,SES.GTunit.combChamber.fluegas.state.p,SES.GTunit.combChamber.fluegas.state.T,SES.GTunit.combChamber.fluegas.state.X[1],SES.GTunit.combChamber.fluegas.state.X[2],SES.GTunit.combChamber.fluegas.state.X[3],SES.GTunit.combChamber.fluegas.state.X[4],SES.GTunit.combChamber.fluegas.state.X[5],SES.GTunit.combChamber.fluegas.preferredMediumStates,SES.GTunit.combChamber.fluegas.standardOrderComponents,SES.GTunit.combChamber.fluegas.T_degC,SES.GTunit.combChamber.fluegas.p_bar,SES.GTunit.combChamber.wf,SES.GTunit.combChamber.M,SES.GTunit.combChamber.der(M),SES.GTunit.combChamber.MX[1],SES.GTunit.combChamber.MX[2],SES.GTunit.combChamber.MX[3],SES.GTunit.combChamber.MX[4],SES.GTunit.combChamber.MX[5],SES.GTunit.combChamber.der(MX[1]),SES.GTunit.combChamber.der(MX[2]),SES.GTunit.combChamber.der(MX[3]),SES.GTunit.combChamber.der(MX[4]),SES.GTunit.combChamber.der(MX[5]),SES.GTunit.combChamber.E,SES.GTunit.combChamber.der(E),SES.GTunit.combChamber.Tm,SES.GTunit.combChamber.Td,SES.GTunit.combChamber.Tf,SES.GTunit.combChamber.hia,SES.GTunit.combChamber.hif,SES.GTunit.combChamber.ho,SES.GTunit.combChamber.der(ho),SES.GTunit.combChamber.HR,SES.GTunit.combChamber.ResTime,SES.GTunit.combChamber.eta_comb,SES.GTunit.combChamber.ina.m_flow,SES.GTunit.combChamber.ina.p,SES.GTunit.combChamber.ina.h_outflow,SES.GTunit.combChamber.ina.Xi_outflow[1],SES.GTunit.combChamber.ina.Xi_outflow[2],SES.GTunit.combChamber.ina.Xi_outflow[3],SES.GTunit.combChamber.ina.Xi_outflow[4],SES.GTunit.combChamber.inf.m_flow,SES.GTunit.combChamber.inf.p,SES.GTunit.combChamber.inf.h_outflow,SES.GTunit.combChamber.inf.Xi_outflow[1],SES.GTunit.combChamber.inf.Xi_outflow[2],SES.GTunit.combChamber.inf.Xi_outflow[3],SES.GTunit.combChamber.out.m_flow,SES.GTunit.combChamber.out.p,SES.GTunit.combChamber.out.h_outflow,SES.GTunit.combChamber.out.Xi_outflow[1],SES.GTunit.combChamber.out.Xi_outflow[2],SES.GTunit.combChamber.out.Xi_outflow[3],SES.GTunit.combChamber.out.Xi_outflow[4],SES.GTunit.combChamber.out.Xi_outflow[5],SES.GTunit.combChamber.eta0_comb,SES.GTunit.combChamber.wcomb,SES.GTunit.combChamber.lambda,SES.GTunit.compressor.explicitIsentropicEnthalpy,SES.GTunit.compressor.allowFlowReversal,SES.GTunit.compressor.pstart_in,SES.GTunit.compressor.pstart_out,SES.GTunit.compressor.Tstart_in,SES.GTunit.compressor.Tstart_out,SES.GTunit.compressor.Xstart[1],SES.GTunit.compressor.Xstart[2],SES.GTunit.compressor.Xstart[3],SES.GTunit.compressor.Xstart[4],SES.GTunit.compressor.gas_in.p,SES.GTunit.compressor.gas_in.Xi[1],SES.GTunit.compressor.gas_in.Xi[2],SES.GTunit.compressor.gas_in.Xi[3],SES.GTunit.compressor.gas_in.Xi[4],SES.GTunit.compressor.gas_in.h,SES.GTunit.compressor.gas_in.d,SES.GTunit.compressor.gas_in.T,SES.GTunit.compressor.gas_in.X[1],SES.GTunit.compressor.gas_in.X[2],SES.GTunit.compressor.gas_in.X[3],SES.GTunit.compressor.gas_in.X[4],SES.GTunit.compressor.gas_in.u,SES.GTunit.compressor.gas_in.R,SES.GTunit.compressor.gas_in.MM,SES.GTunit.compressor.gas_in.state.p,SES.GTunit.compressor.gas_in.state.T,SES.GTunit.compressor.gas_in.state.X[1],SES.GTunit.compressor.gas_in.state.X[2],SES.GTunit.compressor.gas_in.state.X[3],SES.GTunit.compressor.gas_in.state.X[4],SES.GTunit.compressor.gas_in.preferredMediumStates,SES.GTunit.compressor.gas_in.standardOrderComponents,SES.GTunit.compressor.gas_in.T_degC,SES.GTunit.compressor.gas_in.p_bar,SES.GTunit.compressor.gas_iso.p,SES.GTunit.compressor.gas_iso.Xi[1],SES.GTunit.compressor.gas_iso.Xi[2],SES.GTunit.compressor.gas_iso.Xi[3],SES.GTunit.compressor.gas_iso.Xi[4],SES.GTunit.compressor.gas_iso.h,SES.GTunit.compressor.gas_iso.d,SES.GTunit.compressor.gas_iso.T,SES.GTunit.compressor.gas_iso.X[1],SES.GTunit.compressor.gas_iso.X[2],SES.GTunit.compressor.gas_iso.X[3],SES.GTunit.compressor.gas_iso.X[4],SES.GTunit.compressor.gas_iso.u,SES.GTunit.compressor.gas_iso.R,SES.GTunit.compressor.gas_iso.MM,SES.GTunit.compressor.gas_iso.state.p,SES.GTunit.compressor.gas_iso.state.T,SES.GTunit.compressor.gas_iso.state.X[1],SES.GTunit.compressor.gas_iso.state.X[2],SES.GTunit.compressor.gas_iso.state.X[3],SES.GTunit.compressor.gas_iso.state.X[4],SES.GTunit.compressor.gas_iso.preferredMediumStates,SES.GTunit.compressor.gas_iso.standardOrderComponents,SES.GTunit.compressor.gas_iso.T_degC,SES.GTunit.compressor.gas_iso.p_bar,SES.GTunit.compressor.state_gas_out.p,SES.GTunit.compressor.state_gas_out.T,SES.GTunit.compressor.state_gas_out.X[1],SES.GTunit.compressor.state_gas_out.X[2],SES.GTunit.compressor.state_gas_out.X[3],SES.GTunit.compressor.state_gas_out.X[4],SES.GTunit.compressor.hout_iso,SES.GTunit.compressor.hout,SES.GTunit.compressor.s_in,SES.GTunit.compressor.pin,SES.GTunit.compressor.pout,SES.GTunit.compressor.Ti,SES.GTunit.compressor.Td,SES.GTunit.compressor.w,SES.GTunit.compressor.Wc,SES.GTunit.compressor.eta,SES.GTunit.compressor.PR,SES.GTunit.compressor.inlet.m_flow,SES.GTunit.compressor.inlet.p,SES.GTunit.compressor.inlet.h_outflow,SES.GTunit.compressor.inlet.Xi_outflow[1],SES.GTunit.compressor.inlet.Xi_outflow[2],SES.GTunit.compressor.inlet.Xi_outflow[3],SES.GTunit.compressor.inlet.Xi_outflow[4],SES.GTunit.compressor.outlet.m_flow,SES.GTunit.compressor.outlet.p,SES.GTunit.compressor.outlet.h_outflow,SES.GTunit.compressor.outlet.Xi_outflow[1],SES.GTunit.compressor.outlet.Xi_outflow[2],SES.GTunit.compressor.outlet.Xi_outflow[3],SES.GTunit.compressor.outlet.Xi_outflow[4],SES.GTunit.compressor.eta0,SES.GTunit.compressor.PR0,SES.GTunit.compressor.w0,SES.GTunit.turbine.explicitIsentropicEnthalpy,SES.GTunit.turbine.allowFlowReversal,SES.GTunit.turbine.pstart_in,SES.GTunit.turbine.pstart_out,SES.GTunit.turbine.Tstart_in,SES.GTunit.turbine.Tstart_out,SES.GTunit.turbine.Xstart[1],SES.GTunit.turbine.Xstart[2],SES.GTunit.turbine.Xstart[3],SES.GTunit.turbine.Xstart[4],SES.GTunit.turbine.Xstart[5],SES.GTunit.turbine.gas_in.p,SES.GTunit.turbine.gas_in.Xi[1],SES.GTunit.turbine.gas_in.Xi[2],SES.GTunit.turbine.gas_in.Xi[3],SES.GTunit.turbine.gas_in.Xi[4],SES.GTunit.turbine.gas_in.Xi[5],SES.GTunit.turbine.gas_in.h,SES.GTunit.turbine.gas_in.d,SES.GTunit.turbine.gas_in.T,SES.GTunit.turbine.gas_in.X[1],SES.GTunit.turbine.gas_in.der(X[1]),SES.GTunit.turbine.gas_in.X[2],SES.GTunit.turbine.gas_in.der(X[2]),SES.GTunit.turbine.gas_in.X[3],SES.GTunit.turbine.gas_in.der(X[3]),SES.GTunit.turbine.gas_in.X[4],SES.GTunit.turbine.gas_in.der(X[4]),SES.GTunit.turbine.gas_in.X[5],SES.GTunit.turbine.gas_in.der(X[5]),SES.GTunit.turbine.gas_in.u,SES.GTunit.turbine.gas_in.R,SES.GTunit.turbine.gas_in.MM,SES.GTunit.turbine.gas_in.state.p,SES.GTunit.turbine.gas_in.state.T,SES.GTunit.turbine.gas_in.state.X[1],SES.GTunit.turbine.gas_in.state.X[2],SES.GTunit.turbine.gas_in.state.X[3],SES.GTunit.turbine.gas_in.state.X[4],SES.GTunit.turbine.gas_in.state.X[5],SES.GTunit.turbine.gas_in.preferredMediumStates,SES.GTunit.turbine.gas_in.standardOrderComponents,SES.GTunit.turbine.gas_in.T_degC,SES.GTunit.turbine.gas_in.p_bar,SES.GTunit.turbine.gas_iso.p,SES.GTunit.turbine.gas_iso.Xi[1],SES.GTunit.turbine.gas_iso.Xi[2],SES.GTunit.turbine.gas_iso.Xi[3],SES.GTunit.turbine.gas_iso.Xi[4],SES.GTunit.turbine.gas_iso.Xi[5],SES.GTunit.turbine.gas_iso.h,SES.GTunit.turbine.gas_iso.d,SES.GTunit.turbine.gas_iso.T,SES.GTunit.turbine.gas_iso.X[1],SES.GTunit.turbine.gas_iso.X[2],SES.GTunit.turbine.gas_iso.X[3],SES.GTunit.turbine.gas_iso.X[4],SES.GTunit.turbine.gas_iso.X[5],SES.GTunit.turbine.gas_iso.u,SES.GTunit.turbine.gas_iso.R,SES.GTunit.turbine.gas_iso.MM,SES.GTunit.turbine.gas_iso.state.p,SES.GTunit.turbine.gas_iso.state.T,SES.GTunit.turbine.gas_iso.state.X[1],SES.GTunit.turbine.gas_iso.state.X[2],SES.GTunit.turbine.gas_iso.state.X[3],SES.GTunit.turbine.gas_iso.state.X[4],SES.GTunit.turbine.gas_iso.state.X[5],SES.GTunit.turbine.gas_iso.preferredMediumStates,SES.GTunit.turbine.gas_iso.standardOrderComponents,SES.GTunit.turbine.gas_iso.T_degC,SES.GTunit.turbine.gas_iso.p_bar,SES.GTunit.turbine.state_gas_out.p,SES.GTunit.turbine.state_gas_out.T,SES.GTunit.turbine.state_gas_out.X[1],SES.GTunit.turbine.state_gas_out.X[2],SES.GTunit.turbine.state_gas_out.X[3],SES.GTunit.turbine.state_gas_out.X[4],SES.GTunit.turbine.state_gas_out.X[5],SES.GTunit.turbine.s_in,SES.GTunit.turbine.hout_iso,SES.GTunit.turbine.hout,SES.GTunit.turbine.pin,SES.GTunit.turbine.pout,SES.GTunit.turbine.Tf,SES.GTunit.turbine.Te,SES.GTunit.turbine.w,SES.GTunit.turbine.Wt,SES.GTunit.turbine.eta,SES.GTunit.turbine.PR,SES.GTunit.turbine.inlet.m_flow,SES.GTunit.turbine.inlet.p,SES.GTunit.turbine.inlet.h_outflow,SES.GTunit.turbine.inlet.Xi_outflow[1],SES.GTunit.turbine.inlet.Xi_outflow[2],SES.GTunit.turbine.inlet.Xi_outflow[3],SES.GTunit.turbine.inlet.Xi_outflow[4],SES.GTunit.turbine.inlet.Xi_outflow[5],SES.GTunit.turbine.outlet.m_flow,SES.GTunit.turbine.outlet.p,SES.GTunit.turbine.outlet.h_outflow,SES.GTunit.turbine.outlet.Xi_outflow[1],SES.GTunit.turbine.outlet.Xi_outflow[2],SES.GTunit.turbine.outlet.Xi_outflow[3],SES.GTunit.turbine.outlet.Xi_outflow[4],SES.GTunit.turbine.outlet.Xi_outflow[5],SES.GTunit.turbine.eta0,SES.GTunit.turbine.PR0,SES.GTunit.turbine.w0,SES.GTunit.air_in.m_flow,SES.GTunit.air_in.p,SES.GTunit.air_in.h_outflow,SES.GTunit.air_in.Xi_outflow[1],SES.GTunit.air_in.Xi_outflow[2],SES.GTunit.air_in.Xi_outflow[3],SES.GTunit.air_in.Xi_outflow[4],SES.GTunit.fuel_in.m_flow,SES.GTunit.fuel_in.p,SES.GTunit.fuel_in.h_outflow,SES.GTunit.fuel_in.Xi_outflow[1],SES.GTunit.fuel_in.Xi_outflow[2],SES.GTunit.fuel_in.Xi_outflow[3],SES.GTunit.exhaust_out.m_flow,SES.GTunit.exhaust_out.p,SES.GTunit.exhaust_out.h_outflow,SES.GTunit.exhaust_out.Xi_outflow[1],SES.GTunit.exhaust_out.Xi_outflow[2],SES.GTunit.exhaust_out.Xi_outflow[3],SES.GTunit.exhaust_out.Xi_outflow[4],SES.GTunit.exhaust_out.Xi_outflow[5],SES.GTunit.Te,SES.GTunit.Te_mes.port.m_flow,SES.GTunit.Te_mes.port.p,SES.GTunit.Te_mes.port.h_outflow,SES.GTunit.Te_mes.port.Xi_outflow[1],SES.GTunit.Te_mes.port.Xi_outflow[2],SES.GTunit.Te_mes.port.Xi_outflow[3],SES.GTunit.Te_mes.port.Xi_outflow[4],SES.GTunit.Te_mes.port.Xi_outflow[5],SES.GTunit.Te_mes.T,SES.GTunit.Tf_mes.port.m_flow,SES.GTunit.Tf_mes.port.p,SES.GTunit.Tf_mes.port.h_outflow,SES.GTunit.Tf_mes.port.Xi_outflow[1],SES.GTunit.Tf_mes.port.Xi_outflow[2],SES.GTunit.Tf_mes.port.Xi_outflow[3],SES.GTunit.Tf_mes.port.Xi_outflow[4],SES.GTunit.Tf_mes.port.Xi_outflow[5],SES.GTunit.Tf_mes.T,SES.GTunit.shaft.phi,SES.GTunit.shaft.tau,SES.SourceFuel.nPorts,SES.SourceFuel.medium.p,SES.SourceFuel.medium.Xi[1],SES.SourceFuel.medium.Xi[2],SES.SourceFuel.medium.Xi[3],SES.SourceFuel.medium.h,SES.SourceFuel.medium.d,SES.SourceFuel.medium.T,SES.SourceFuel.medium.X[1],SES.SourceFuel.medium.X[2],SES.SourceFuel.medium.X[3],SES.SourceFuel.medium.u,SES.SourceFuel.medium.R,SES.SourceFuel.medium.MM,SES.SourceFuel.medium.state.p,SES.SourceFuel.medium.state.T,SES.SourceFuel.medium.state.X[1],SES.SourceFuel.medium.state.X[2],SES.SourceFuel.medium.state.X[3],SES.SourceFuel.medium.preferredMediumStates,SES.SourceFuel.medium.standardOrderComponents,SES.SourceFuel.medium.T_degC,SES.SourceFuel.medium.p_bar,SES.SourceFuel.ports[1].m_flow,SES.SourceFuel.ports[1].p,SES.SourceFuel.ports[1].h_outflow,SES.SourceFuel.ports[1].Xi_outflow[1],SES.SourceFuel.ports[1].Xi_outflow[2],SES.SourceFuel.ports[1].Xi_outflow[3],SES.SourceFuel.m_flow,SES.SourceFuel.T,SES.SourceFuel.X[1],SES.SourceFuel.X[2],SES.SourceFuel.X[3],SES.SourceFuel.m_flow_in,SES.SinkExhaustGas.nPorts,SES.SinkExhaustGas.medium.p,SES.SinkExhaustGas.medium.Xi[1],SES.SinkExhaustGas.medium.Xi[2],SES.SinkExhaustGas.medium.Xi[3],SES.SinkExhaustGas.medium.Xi[4],SES.SinkExhaustGas.medium.Xi[5],SES.SinkExhaustGas.medium.h,SES.SinkExhaustGas.medium.d,SES.SinkExhaustGas.medium.T,SES.SinkExhaustGas.medium.X[1],SES.SinkExhaustGas.medium.X[2],SES.SinkExhaustGas.medium.X[3],SES.SinkExhaustGas.medium.X[4],SES.SinkExhaustGas.medium.X[5],SES.SinkExhaustGas.medium.u,SES.SinkExhaustGas.medium.R,SES.SinkExhaustGas.medium.MM,SES.SinkExhaustGas.medium.state.p,SES.SinkExhaustGas.medium.state.T,SES.SinkExhaustGas.medium.state.X[1],SES.SinkExhaustGas.medium.state.X[2],SES.SinkExhaustGas.medium.state.X[3],SES.SinkExhaustGas.medium.state.X[4],SES.SinkExhaustGas.medium.state.X[5],SES.SinkExhaustGas.medium.preferredMediumStates,SES.SinkExhaustGas.medium.standardOrderComponents,SES.SinkExhaustGas.medium.T_degC,SES.SinkExhaustGas.medium.p_bar,SES.SinkExhaustGas.ports[1].m_flow,SES.SinkExhaustGas.ports[1].p,SES.SinkExhaustGas.ports[1].h_outflow,SES.SinkExhaustGas.ports[1].Xi_outflow[1],SES.SinkExhaustGas.ports[1].Xi_outflow[2],SES.SinkExhaustGas.ports[1].Xi_outflow[3],SES.SinkExhaustGas.ports[1].Xi_outflow[4],SES.SinkExhaustGas.ports[1].Xi_outflow[5],SES.SinkExhaustGas.p,SES.SinkExhaustGas.T,SES.SinkExhaustGas.X[1],SES.SinkExhaustGas.X[2],SES.SinkExhaustGas.X[3],SES.SinkExhaustGas.X[4],SES.SinkExhaustGas.X[5],SES.SinkExhaustGas.p_in,SES.airSourceW.gas.p,SES.airSourceW.gas.Xi[1],SES.airSourceW.gas.Xi[2],SES.airSourceW.gas.Xi[3],SES.airSourceW.gas.Xi[4],SES.airSourceW.gas.h,SES.airSourceW.gas.d,SES.airSourceW.gas.T,SES.airSourceW.gas.X[1],SES.airSourceW.gas.X[2],SES.airSourceW.gas.X[3],SES.airSourceW.gas.X[4],SES.airSourceW.gas.u,SES.airSourceW.gas.R,SES.airSourceW.gas.MM,SES.airSourceW.gas.state.p,SES.airSourceW.gas.state.T,SES.airSourceW.gas.state.X[1],SES.airSourceW.gas.state.X[2],SES.airSourceW.gas.state.X[3],SES.airSourceW.gas.state.X[4],SES.airSourceW.gas.preferredMediumStates,SES.airSourceW.gas.standardOrderComponents,SES.airSourceW.gas.T_degC,SES.airSourceW.gas.p_bar,SES.airSourceW.p0,SES.airSourceW.T0,SES.airSourceW.X0[1],SES.airSourceW.X0[2],SES.airSourceW.X0[3],SES.airSourceW.X0[4],SES.airSourceW.w0,SES.airSourceW.thetaIGV0,SES.airSourceW.N0,SES.airSourceW.allowFlowReversal,SES.airSourceW.use_in_thetaIGV,SES.airSourceW.use_in_N,SES.airSourceW.use_in_T,SES.airSourceW.use_in_X,SES.airSourceW.thetaIGV_start,SES.airSourceW.thetaIGVmin,SES.airSourceW.thetaIGVmax,SES.airSourceW.A0,SES.airSourceW.A1,SES.airSourceW.A2,SES.airSourceW.w,SES.airSourceW.p_in,SES.airSourceW.p_in_reduced,SES.airSourceW.T_in_reduced,SES.airSourceW.N,SES.airSourceW.N_pu,SES.airSourceW.N_T_pu,SES.airSourceW.deltaN_T_pu,SES.airSourceW.thetaIGV,SES.airSourceW.in_thetaIGV,SES.airSourceW.in_N,SES.airSourceW.flange.m_flow,SES.airSourceW.flange.p,SES.airSourceW.flange.h_outflow,SES.airSourceW.flange.Xi_outflow[1],SES.airSourceW.flange.Xi_outflow[2],SES.airSourceW.flange.Xi_outflow[3],SES.airSourceW.flange.Xi_outflow[4],SES.fuelCtrl.TV,SES.fuelCtrl.TF,SES.fuelCtrl.K6,SES.fuelCtrl.K3,SES.fuelCtrl.Kf,SES.fuelCtrl.VCE,SES.fuelCtrl.wf_pu,SES.fuelCtrl.ValvePositioner.k,SES.fuelCtrl.ValvePositioner.T,SES.fuelCtrl.ValvePositioner.initType,SES.fuelCtrl.ValvePositioner.y_start,SES.fuelCtrl.ValvePositioner.u,SES.fuelCtrl.ValvePositioner.y,SES.fuelCtrl.ValvePositioner.der(y),SES.fuelCtrl.FuelSystem.k,SES.fuelCtrl.FuelSystem.T,SES.fuelCtrl.FuelSystem.initType,SES.fuelCtrl.FuelSystem.y_start,SES.fuelCtrl.FuelSystem.u,SES.fuelCtrl.FuelSystem.y,SES.fuelCtrl.FuelSystem.der(y),SES.fuelCtrl.add.k1,SES.fuelCtrl.add.k2,SES.fuelCtrl.add.k3,SES.fuelCtrl.add.u1,SES.fuelCtrl.add.u2,SES.fuelCtrl.add.u3,SES.fuelCtrl.add.y,SES.fuelCtrl.FuelAdjustment.k,SES.fuelCtrl.FuelAdjustment.u,SES.fuelCtrl.FuelAdjustment.y,SES.fuelCtrl.FuelValveMin.k,SES.fuelCtrl.FuelValveMin.y,SES.fuelCtrl.ExternalFeedback.k,SES.fuelCtrl.ExternalFeedback.u,SES.fuelCtrl.ExternalFeedback.y,SES.wf.k,SES.wf.u,SES.wf.y,SES.Inertia.flange_a.phi,SES.Inertia.flange_a.tau,SES.Inertia.flange_b.phi,SES.Inertia.flange_b.tau,SES.Inertia.J,SES.Inertia.phi,SES.Inertia.der(phi),SES.Inertia.w,SES.Inertia.der(w),SES.Inertia.a,SES.pExh_out_cal.y,SES.Te_pu.k,SES.Te_pu.u,SES.Te_pu.y,SES.Tf_pu.k,SES.Tf_pu.u,SES.Tf_pu.y,SES.IGVangle.k,SES.IGVangle.u,SES.IGVangle.y,SES.multiSensor.flange_a.phi,SES.multiSensor.flange_a.der(phi),SES.multiSensor.flange_a.tau,SES.multiSensor.flange_b.phi,SES.multiSensor.flange_b.tau,SES.multiSensor.power,SES.multiSensor.w,SES.multiSensor.tau,SES.mExhaust.allowFlowReversal,SES.mExhaust.port_a.m_flow,SES.mExhaust.port_a.p,SES.mExhaust.port_a.h_outflow,SES.mExhaust.port_a.Xi_outflow[1],SES.mExhaust.port_a.Xi_outflow[2],SES.mExhaust.port_a.Xi_outflow[3],SES.mExhaust.port_a.Xi_outflow[4],SES.mExhaust.port_a.Xi_outflow[5],SES.mExhaust.port_b.m_flow,SES.mExhaust.port_b.p,SES.mExhaust.port_b.h_outflow,SES.mExhaust.port_b.Xi_outflow[1],SES.mExhaust.port_b.Xi_outflow[2],SES.mExhaust.port_b.Xi_outflow[3],SES.mExhaust.port_b.Xi_outflow[4],SES.mExhaust.port_b.Xi_outflow[5],SES.mExhaust.m_flow_nominal,SES.mExhaust.m_flow_small,SES.mExhaust.capacityScaler,SES.mExhaust.m_flow,SES.X_CO2.port.m_flow,SES.X_CO2.port.p,SES.X_CO2.port.h_outflow,SES.X_CO2.port.Xi_outflow[1],SES.X_CO2.port.Xi_outflow[2],SES.X_CO2.port.Xi_outflow[3],SES.X_CO2.port.Xi_outflow[4],SES.X_CO2.port.Xi_outflow[5],SES.X_CO2.Xi,SES.wNatGas.allowFlowReversal,SES.wNatGas.port_a.m_flow,SES.wNatGas.port_a.p,SES.wNatGas.port_a.h_outflow,SES.wNatGas.port_a.Xi_outflow[1],SES.wNatGas.port_a.Xi_outflow[2],SES.wNatGas.port_a.Xi_outflow[3],SES.wNatGas.port_b.m_flow,SES.wNatGas.port_b.p,SES.wNatGas.port_b.h_outflow,SES.wNatGas.port_b.Xi_outflow[1],SES.wNatGas.port_b.Xi_outflow[2],SES.wNatGas.port_b.Xi_outflow[3],SES.wNatGas.m_flow_nominal,SES.wNatGas.m_flow_small,SES.wNatGas.capacityScaler,SES.wNatGas.m_flow,SES.wCO2.u1,SES.wCO2.u2,SES.wCO2.y,SES.IGVangle_set.height,SES.IGVangle_set.duration,SES.IGVangle_set.y,SES.IGVangle_set.offset,SES.IGVangle_set.startTime,SES.speed.flange.phi,SES.speed.flange.tau,SES.speed.exact,SES.speed.f_crit,SES.speed.phi,SES.speed.der(phi),SES.speed.w,SES.speed.a,SES.speed.w_ref,SES.constN.k,SES.constN.y,SES.generator.port_b.W,SES.generator.port_b.f,SES.generator.P_flow,SES.powerGen.y,SES.limiter_VCE.uMax,SES.limiter_VCE.uMin,SES.limiter_VCE.strict,SES.limiter_VCE.homotopyType,SES.limiter_VCE.limitsAtInit,SES.limiter_VCE.u,SES.limiter_VCE.y,SES.CS.actuatorBus.GTPP.m_flow_fuel_pu,SES.actuatorBus.GTPP.m_flow_fuel_pu,SES.ED.actuatorBus.GTPP.m_flow_fuel_pu</Group>
+    <Group name="outputvars">SES.portElec_b.W,SES.GTunit.Tf</Group>
+    <Group name="actuatorvars">SC.demand_SES.y[1]</Group>
+    <Group name="PCADimensions">PCADimension1,PCADimension2,PCADimension3,PCADimension4,PCADimension5,PCADimension6,PCADimension7,PCADimension8,PCADimension9,PCADimension10,PCADimension11,PCADimension12,PCADimension13,PCADimension14,PCADimension15,PCADimension16,PCADimension17,PCADimension18,PCADimension19,PCADimension20,PCADimension21,PCADimension22,PCADimension23,PCADimension24,PCADimension25,PCADimension26,PCADimension27,PCADimension28,PCADimension29,PCADimension30</Group>
+  </VariableGroups>
+  
+  <Files>
+    <Input name="DataSetsFile">../SES_Dymola.csv</Input>
+	<Input name="TrainDataFile">printTrainingSet.csv</Input>
+    <Input name="ROMpk" type="">ROMpk</Input>
+	<Input name="ABCMatrices" type="">DMDcCxCoeff.xml</Input>
+    <Input name="RefGovpk" type="">RefGov_SES.pk</Input>
+  </Files>
+  
+  <Models>
+    <PostProcessor name="FeatureSelectionRFE" subType="FeatureSelection">
+      <what>RFE</what>
+      <features>PCADimensions</features>
+      <targets>outputvars</targets>
+      <minimumNumberOfFeatures>13</minimumNumberOfFeatures>
+      <aggregateTargets>True</aggregateTargets>
+    </PostProcessor>
+    
+	<PostProcessor name="PCA" subType="DataMining" verbosity="quiet">
+      <KDD lib="SciKitLearn">
+        <Features>allInputVars</Features>
+        <SKLtype>decomposition|PCA</SKLtype>
+        <n_components>30</n_components>
+      </KDD>
+    </PostProcessor>
+    
+	<PostProcessor name="DataObjectVariablesSelector" subType="DataObjectVariablesSelector" verbosity="quiet">
+      <target>FeatureSelectionRFE_SES.portElec_b.W</target>
+      <variableDataObject>pp_out</variableDataObject>
+    </PostProcessor>
+    
+	<ROM name="DMDrom" subType="DMDC">
+	  <Target>Time,SES.portElec_b.W,SES.GTunit.Tf</Target>
+	  <!-- If Target only contains Time, Calculate A and B only -->
+	  <!-- If Target contains y(s) beside Time, Calculate A, B and C -->
+      <Features>SC.demand_SES.y[1],PCADimension1,PCADimension25,PCADimension24,PCADimension26,PCADimension17,PCADimension16,PCADimension13,PCADimension23,PCADimension27,PCADimension28,PCADimension22,PCADimension19,PCADimension21</Features>
+	  <!-- Features include all the u(s) and x(s) -->
+      <Actuators>SC.demand_SES.y[1]</Actuators>
+	  <pivotParameter>Time</pivotParameter>   
+      <rankSVD>-1</rankSVD>
+	  <!-- rankSVD: -1 = No truncation; 0 = optimized truncation; pos. int = truncation level -->
+	  <SubtractNormUXY>True</SubtractNormUXY>
+	  <!-- SubtractNormUXY: True = will subtract the initial values from U,X,Y -->
+    </ROM>
+	
+    <ExternalModel name="RG1" subType="RefGov.RefGov_SIMO">
+	  <variables> P1, V1, V1min, V1max </variables>
+	  <!-- 4 variables: Issued Setpoint(P1), Adjusted Setpoint(V1), bounds of V1(V1min & V1max) -->
+	  <constant varName="Min_Target1"> 35.0E6</constant> 
+	  <constant varName="Max_Target1"> 40.0E6</constant> 
+	  <constant varName="Min_Target2"> 1000 </constant> 
+	  <constant varName="Max_Target2"> 1800 </constant> 
+	  <!-- lower and upper bounds for y vector, will be internally checked -->
+	  <constant varName="MOASsteps"> 10 </constant>
+	  <!-- steps in MOAS calculation, "g" value -->
+      <outputVariable>V1, V1min, V1max </outputVariable>
+	  <!-- 3 output variables -->  
+    </ExternalModel> 
+  </Models>
+  
+  <Distributions>
+    <Uniform name="one">
+        <lowerBound>30E6</lowerBound>
+        <upperBound>45E6</upperBound>
+    </Uniform>
+	<!-- distribution for P1 sampling -->
+  </Distributions>
+
+   <Samplers>
+    <MonteCarlo name="RG_Sampler">
+      <samplerInit>
+        <limit>10</limit>
+      </samplerInit>
+      <variable name="P1">
+        <distribution>one</distribution>
+      </variable>
+    </MonteCarlo>
+	<!-- A MonteCarlo sampler for P1 sampling  -->
+  </Samplers>
+
+  <Steps>
+    <IOStep name="readIn"  >
+      <Input class="Files" type="">DataSetsFile</Input>
+      <Output class="DataObjects" type="PointSet">DataSetsRaw</Output>
+    </IOStep>
+    <PostProcess name="prePCA"  >
+      <Input class="DataObjects" type="PointSet">DataSetsRaw</Input>
+      <Model class="Models" type="PostProcessor">PCA</Model>
+      <SolutionExport class="DataObjects" type="PointSet">drInfo</SolutionExport>
+      <Output class="DataObjects" type="PointSet">DataSets</Output>
+      <!-- <Output class="OutStreams" type="Print">PrintDataSet</Output>  -->
+      <!-- <Output class="OutStreams" type="Print">info</Output> -->
+    </PostProcess>
+    <PostProcess name="selectFeatures"  >
+      <Input class="DataObjects" type="PointSet">DataSets</Input>
+      <Model class="Models" type="PostProcessor">FeatureSelectionRFE</Model>
+      <Output class="DataObjects" type="PointSet">pp_out</Output>
+      <Output class="OutStreams" type="Print">printpp</Output>
+    </PostProcess>
+    <PostProcess name="extractFeatures"  >
+      <Input class="DataObjects" type="PointSet">pp_out</Input>
+      <Input class="DataObjects" type="PointSet">DataSets</Input>
+      <Model class="Models" type="PostProcessor">DataObjectVariablesSelector</Model>
+      <Output class="DataObjects" type="PointSet">TrainingSet</Output>
+      <Output class="OutStreams" type="Print">printTrainingSet</Output>
+    </PostProcess>
+    <IOStep name="readTrainData">
+      <Input class="Files" type="">TrainDataFile</Input>
+      <Output class="DataObjects" type="PointSet">TrainData</Output>
+    </IOStep>
+	<RomTrainer name="DMDCTrain">
+      <Input class="DataObjects" type="PointSet">TrainData</Input>
+      <Output class="Models" type="ROM">DMDrom</Output>
+    </RomTrainer>
+    <IOStep name="pickleRom">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="Files" type="">ROMpk</Output>
+    </IOStep>
+    <IOStep name="stats">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="DataObjects" type="DataSet">rom_stats</Output>
+    </IOStep>
+    <IOStep name="writeOut" pauseAtEnd="True">
+      <Input class="DataObjects" type="DataSet">rom_stats</Input>
+      <Output class="OutStreams" type="Print">DMDcCxCoeff</Output>
+    </IOStep>
+	
+    <MultiRun name="RGrun">
+	  <Input		  class="DataObjects"   type="PointSet">RGInput</Input>
+      <Input 		  class="Files" 		type="">ABCMatrices</Input>
+      <Model          class="Models"        type="ExternalModel">RG1</Model>
+	  <Sampler		  class="Samplers"		type="MonteCarlo">RG_Sampler</Sampler>
+      <Output         class="DataObjects"   type="PointSet">RGOutput</Output>
+    </MultiRun>
+	<!-- MultiRun step to execute the plugin for multiple times -->
+	
+    <IOStep name="printTOfile">
+		<Input          class="DataObjects"   type="PointSet">RGOutput</Input>
+		<Output         class="OutStreams"    type="Print">RefGovOutput</Output>
+	</IOStep>
+	<!-- IOStep to dump the RGOutput to RefGovOutput.csv-->
+    <IOStep name="serializeReferenceGov">
+      <Input class="Models" type="ROM">RG1</Input>
+      <Output class="Files" type="">RefGovpk</Output>
+    </IOStep>
+
+  </Steps>
+
+  <DataObjects>
+    <PointSet name="DataSetsRaw">
+      <Input>allInputVars</Input>
+      <Output>outputvars,Time,actuatorvars</Output>
+    </PointSet>
+    <PointSet name="DataSets">
+      <Input>allInputVars</Input>
+      <Output>outputvars,PCADimensions,Time,actuatorvars</Output>
+    </PointSet>
+    <PointSet name="drInfo">
+      <Input>allInputVars,PCADimension</Input>
+    </PointSet>
+    <PointSet name="pp_out">
+      <Output>FeatureSelectionRFE_SES.portElec_b.W,FeatureSelectionRFE_SES.GTunit.Tf</Output>
+    </PointSet>
+    <PointSet name="TrainingSet">
+	  <Input>
+	  PCADimension1,PCADimension25,PCADimension24,PCADimension26,PCADimension17,PCADimension16,PCADimension13,PCADimension23,PCADimension27,PCADimension28,PCADimension22,PCADimension19,PCADimension21
+	  </Input>
+	  
+      <Output>outputvars,Time,actuatorvars</Output>
+    </PointSet>
+    
+	<PointSet name="TrainData">
+      <Input>Time</Input>
+      <Output>SC.demand_SES.y[1],SES.portElec_b.W,SES.GTunit.Tf,PCADimension1,PCADimension25,PCADimension24,PCADimension26,PCADimension17,PCADimension16,PCADimension13,PCADimension23,PCADimension27,PCADimension28,PCADimension22,PCADimension19,PCADimension21</Output>
+    </PointSet>
+	<!-- pointset for DMDc training -->
+    <DataSet name="rom_stats"/>
+	<!-- ROM statistics -->
+    <PointSet name="RGInput">
+      <Input>P1 </Input>
+      <Output>OutputPlaceHolder</Output>
+    </PointSet>
+    <PointSet name="RGOutput">
+      <Input>P1 </Input>
+      <Output>V1, V1min, V1max </Output>
+    </PointSet>
+
+  </DataObjects>
+ 
+  <OutStreams>
+    <Print name="info">
+      <type>csv</type>
+      <source>drInfo</source>
+    </Print>
+    <Print name="printpp">
+      <type>csv</type>
+      <source>pp_out</source>
+    </Print>
+    <Print name="printTrainingSet">
+      <type>csv</type>
+      <source>TrainingSet</source>
+    </Print>
+    <Print name="PrintDataSet">
+      <type>csv</type>
+      <source>DataSets</source>
+    </Print>
+    <Print name="DMDcCxCoeff">
+      <type>csv</type>
+      <source>rom_stats</source>
+    </Print>	
+    <Print name="RefGovOutput">
+      <type>csv</type>
+      <source>RGOutput</source>
+      <what>input,output</what>
+    </Print>
+  </OutStreams>
+
+</Simulation>
