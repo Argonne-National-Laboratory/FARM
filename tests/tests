@@ -1,0 +1,19 @@
+[Tests]
+
+ [./RG_parameterized_SIMO]
+  type = 'RavenFramework'
+  input = 'test_RefGov_para_xmlABC.xml'
+  UnorderedCsv = 'RefGov_para_xmlABC_Test/RefGovOutput.csv'
+  max_time = 500
+  rel_err = 0.001
+ [../]
+
+ [./RG_not_parameterized_SIMO]
+  type = 'RavenFramework'
+  input = 'test_RefGov_unpara_xmlABC.xml'
+  UnorderedCsv = 'RefGov_unpara_xmlABC_Test/RefGovOutput.csv'
+  max_time = 500
+  rel_err = 0.001
+ [../]
+
+[]
