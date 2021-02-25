@@ -30,8 +30,6 @@ from scipy import io
 from scipy.interpolate import interp1d
 from datetime import datetime
 import csv
-# import zip
-import matplotlib.pyplot as plt
 # from MOAS import fun_MOAS, fun_RG_SISO
 #External Modules End-----------------------------------------------------------
 
@@ -318,28 +316,6 @@ class RG_SIMO_1(ExternalModelPluginBase):
       csvfile.close()
 
     y_hist = np.array(y_hist).T
-    # print(v_hist)
-
-    fig, axs = plt.subplots(3)
-    fig.set_size_inches(10, 12)
-
-    axs[0].step(t_hist, y_hist[0], linestyle='-', color='r', linewidth=1)
-    axs[0].step(t_hist, v_hist, linestyle='--', color='g', linewidth=1)
-    axs[0].step(t_hist, r_hist, linestyle='-', color='b', linewidth=1)
-    axs[0].set(ylabel='y[1], Power (W)')
-    axs[0].legend(['y[1]', 'V1', 'P1'], loc='best')
-
-    axs[1].step(t_hist, v_max_hist, linestyle='-', color='r', linewidth=1)
-    axs[1].step(t_hist, v_hist, linestyle='--', color='g', linewidth=1)
-    axs[1].step(t_hist, v_min_hist, linestyle='-', color='b', linewidth=1)
-    axs[1].set(ylabel='V1, Power (W)')
-    axs[1].legend(['V1max', 'V1', 'V1min'], loc='best')
-
-    axs[2].step(t_hist, y_hist[1], linestyle='-', color='r', linewidth=1)
-    axs[2].set(ylabel='y[2], Temperature (DegC)')
-    axs[2].legend(['y[2]'], loc='best')
-
-    fig.savefig(f'Test_GasTurbine_Plot_1_{str_now}.png',dpi=200)
 
   ###############################
   #### RAVEN API methods END ####
