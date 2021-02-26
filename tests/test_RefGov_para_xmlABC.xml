@@ -8,7 +8,7 @@
       This is a test run of parameterized reference governor.
        It loads ABC matrices from external xml file and calculate the feedback from RefGov_parameterized_SIMO external model.
     </description>
-    <requirements> </requirements>
+    <requirements>F-1</requirements>
   </TestInfo>
   <!-- TestInfo is the description part of input xml file, won't run -->
   
