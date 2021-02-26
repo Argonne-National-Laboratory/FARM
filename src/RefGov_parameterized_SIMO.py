@@ -75,15 +75,15 @@ class RefGov_parameterized_SIMO(ExternalModelPluginBase):
         # print(container.variables) # ['V1', 'V1min', 'V1max', 'P1']
         # if container.outputVariable not in container.variables:
         #   raise IOError("RG Plug-in: "+container.outputVariable+" variable MUST be present in the <variables> definition!")
-      
+
       container.constants['Sys_State_x']=[] # place holder
       if child.tag.strip() == "constant":
         # Extract the constant names and their values: container.constants = {'TimeInterval': 3600.0}
         # varName has to be provided in the <constant> entry
         if "varName" not in child.attrib:
           raise IOError("RG Plug-in: attribute varName must be present in <coefficient> XML node!")
-        # extract the system state variable, the only vector 
-        if child.attrib['varName'] == "Sys_State_x": 
+        # extract the system state variable, the only vector
+        if child.attrib['varName'] == "Sys_State_x":
           container.constants['Sys_State_x'] = [float(var.strip()) for var in child.text.split(",")]
         else:
           container.constants[child.attrib['varName']] = float(child.text)
@@ -222,10 +222,10 @@ class RefGov_parameterized_SIMO(ExternalModelPluginBase):
     # Retrive the correct A, B, C matrices
     A_d = container.A_list[profile_id]; B_d = container.B_list[profile_id]; C_d = container.C_list[profile_id]; D_d = np.zeros((container.p,container.m)) # all zero D matrix
     # Retrive the correct y_0, r_0 and X
-    y_0 = container.YNorm_list[profile_id]; r_0 = float(container.UNorm_list[profile_id]); 
+    y_0 = container.YNorm_list[profile_id]; r_0 = float(container.UNorm_list[profile_id]);
     xLast=container.XLast_list[profile_id]; xNorm=container.XNorm_list[profile_id]
     # print(type(r_0))
-   
+
     """ XLast and r_value """
     if container.constants['Sys_State_x']==[]: # if user didn't supply the final system state vector
       X_Last_RG = np.asarray(xLast - xNorm)
@@ -234,7 +234,7 @@ class RefGov_parameterized_SIMO(ExternalModelPluginBase):
     # print("X_Last_RG=", X_Last_RG, type(X_Last_RG))
     # print(a)
     r_value_RG = float(r_value) - r_0
-    
+
 
     """ Calculate Maximal Output Admissible Set (MOAS) """
     s = [] # type == <class 'list'>
@@ -276,7 +276,7 @@ def read_parameterized_XML(MatrixFileName):
     tree = ET.parse(MatrixFileName)
     root = tree.getroot()
     para_array = []; UNorm_list = []; XNorm_list = []; XLast_list = []; YNorm_list =[]
-    A_Re_list = []; B_Re_list = []; C_Re_list = []; A_Im_list = []; B_Im_list = []; C_Im_list = []  
+    A_Re_list = []; B_Re_list = []; C_Re_list = []; A_Im_list = []; B_Im_list = []; C_Im_list = []
     for child1 in root:
         # print(' ',child1.tag) # DMDrom
         for child2 in child1:
@@ -327,7 +327,7 @@ def read_parameterized_XML(MatrixFileName):
                     # print(np.shape(self.YNorm))
                 for child4 in child3:
                     for child5 in child4:
-                        # print('  >  >  > ', child5.tag) # real, imaginary, matrixShape, formatNote                     
+                        # print('  >  >  > ', child5.tag) # real, imaginary, matrixShape, formatNote
                         if child5.tag == 'real':
                             Temp_txtlist = child5.text.split(' ')
                             Temp_floatlist = [float(item) for item in Temp_txtlist]
@@ -382,7 +382,7 @@ def read_parameterized_XML(MatrixFileName):
         eig_A_array.append(max(w))
     eig_A_array = np.asarray(eig_A_array)
     # print(eig_A_array)
-    
+
     return TimeInterval, n, m, p, para_array, UNorm_list, XNorm_list, XLast_list, YNorm_list, A_list, B_list, C_list, eig_A_array
 
 def check_YNorm_within_Range(y_min, y_max, para_array, UNorm_list, XNorm_list, XLast_list, YNorm_list, A_list, B_list, C_list, eig_A_array):
@@ -452,7 +452,7 @@ def fun_RG_SISO(v_0, x, r, H, h, p):
     kappa = 1
     for k in range(0,len(alpha)):
         if 0 < alpha[k] and alpha[k] < beta[k]:
-            kappa = min(kappa, alpha[k]/beta[k])     
+            kappa = min(kappa, alpha[k]/beta[k])
         else:
             kappa = kappa
     v = np.asarray(v_0 + kappa*(r-v_0)).flatten()
@@ -469,7 +469,7 @@ def fun_2nd_gstep_calc(x, Hm, hm, A_m, B_m, g):
     Ag = np.identity(n)
     for k in range(g+1):
         Ag = np.dot(Ag,A_m)
-    
+
     alpha = hm - np.dot(Hxm, np.dot(Ag, np.vstack(x)))
     beta = np.dot(Hxm, np.dot((np.identity(n)-Ag),T))
     # print(np.shape(alpha))

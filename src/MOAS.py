@@ -186,7 +186,7 @@ def fun_RG_SISO(v_0, x, r, H, h, p):
     kappa = 1
     for k in range(0,len(alpha)):
         if 0 < alpha[k] and alpha[k] < beta[k]:
-            kappa = min(kappa, alpha[k]/beta[k])     
+            kappa = min(kappa, alpha[k]/beta[k])
         else:
             kappa = kappa
     v = np.asarray(v_0 + kappa*(r-v_0)).flatten()
@@ -242,7 +242,7 @@ def read_parameterized_XML(MatrixFileName):
     tree = ET.parse(MatrixFileName)
     root = tree.getroot()
     power_array = []; UNorm_list = []; XNorm_list = []; XLast_list = []; YNorm_list =[]
-    A_Re_list = []; B_Re_list = []; C_Re_list = []; A_Im_list = []; B_Im_list = []; C_Im_list = []  
+    A_Re_list = []; B_Re_list = []; C_Re_list = []; A_Im_list = []; B_Im_list = []; C_Im_list = []
     for child1 in root:
         # print(' ',child1.tag) # DMDrom
         for child2 in child1:
@@ -293,7 +293,7 @@ def read_parameterized_XML(MatrixFileName):
                     # print(np.shape(self.YNorm))
                 for child4 in child3:
                     for child5 in child4:
-                        # print('  >  >  > ', child5.tag) # real, imaginary, matrixShape, formatNote                     
+                        # print('  >  >  > ', child5.tag) # real, imaginary, matrixShape, formatNote
                         if child5.tag == 'real':
                             Temp_txtlist = child5.text.split(' ')
                             Temp_floatlist = [float(item) for item in Temp_txtlist]
@@ -348,7 +348,7 @@ def read_parameterized_XML(MatrixFileName):
         eig_A_array.append(max(w))
     eig_A_array = np.asarray(eig_A_array)
     # print(eig_A_array)
-    
+
     return TimeInterval, n, m, p, power_array, UNorm_list, XNorm_list, XLast_list, YNorm_list, A_list, B_list, C_list, eig_A_array
 
 def check_YNorm_within_Range(y_min, y_max, power_array, UNorm_list, XNorm_list, XLast_list, YNorm_list, A_list, B_list, C_list, eig_A_array):
@@ -375,7 +375,7 @@ def check_YNorm_within_Range(y_min, y_max, power_array, UNorm_list, XNorm_list, 
     return power_array_, UNorm_list_, XNorm_list_, XLast_list_, YNorm_list_, A_list_, B_list_, C_list_, eig_A_array_
 
 
-        
+
 def fun_2nd_gstep_calc(x, Hm, hm, A_m, B_m, g):
     n = len(x) # dimension of x
     # x = np.vstack(x) # x is horizontal array, must convert to vertical for matrix operation
@@ -386,7 +386,7 @@ def fun_2nd_gstep_calc(x, Hm, hm, A_m, B_m, g):
     Ag = np.identity(n)
     for k in range(g+1):
         Ag = np.dot(Ag,A_m)
-    
+
     alpha = hm - np.dot(Hxm, np.dot(Ag, np.vstack(x)))
     beta = np.dot(Hxm, np.dot((np.identity(n)-Ag),T))
     # print(np.shape(alpha))
@@ -402,4 +402,4 @@ def fun_2nd_gstep_calc(x, Hm, hm, A_m, B_m, g):
     v_min = np.asarray(max(v_bt))
     return v_max, v_min
 
-    
+

@@ -15,7 +15,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from FARM.src import RG_SIMO_1
-from FARM.src import RefGov_SIMO
 from FARM.src import RefGov_parameterized_SIMO
 from FARM.src import RefGov_unparameterized_SIMO
