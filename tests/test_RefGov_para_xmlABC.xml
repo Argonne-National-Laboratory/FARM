@@ -32,16 +32,13 @@
        <variables> PwrSet, V, V_min, V_max </variables>
        <!-- steps in MOAS calculation, "g" value -->
        <constant varName="MOASsteps"> 360 </constant>
-       
        <!-- lower and upper bounds for y vector, will be internally checked -->
        <constant varName="Min_Target1"> 2.5 </constant>
        <constant varName="Max_Target1"> 55. </constant>
        <constant varName="Min_Target2"> 2.5 </constant>
        <constant varName="Max_Target2"> 55. </constant>
-       
        <!-- System state vector "x", optional, with elements separated by comma(,) -->
        <constant varName="Sys_State_x"> 30.,0 </constant>
-             
     </ExternalModel>
   </Models>
  
