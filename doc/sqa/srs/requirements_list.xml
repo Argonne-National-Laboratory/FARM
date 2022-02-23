@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<requirements_specification application="FARM">
+    
+    
+    <requirement_group id="Minimum Requirements">
+        
+      <requirement_set caption="Minimum Requirements">
+          <requirement id_code="CF-M-1">
+              <description>Computer: Any POSIX (and POSIX-like) system</description>
+              <source>``RAVEN User Manual'', INL/EXT-15-34123; Continous Integration System</source>
+          </requirement>
+          <requirement id_code="CF-M-2">
+              <description>RAM: 2 GB per core execution (depending on the type of analysis and data genarated)</description>
+              <source>``RAVEN User Manual'', INL/EXT-15-34123; Continous Integration System</source>
+          </requirement>
+          <requirement id_code="CF-M-3">
+              <description>Language: Python 3.x</description>
+              <source>``RAVEN User Manual'', INL/EXT-15-34123; Continous Integration System</source>
+          </requirement>
+        </requirement_set>
+          
+    </requirement_group>
+
+
+    <requirement_group id="Functional Requirements">
+        
+      <requirement_set caption="Framework and I/O">
+          <requirement id_code="CF-F-1">
+              <description>The FARM plug-in shall allow user to provide parameterized state-space matrices XML file as input.</description>
+          </requirement>
+          <requirement id_code="CF-F-2">
+              <description>The FARM plug-in shall allow user to provide un-parameterized state-space matrices XML file as input.</description>
+          </requirement>
+      </requirement_set>
+          
+    </requirement_group>
+          
+          
+    <requirement_group id="Usability Requirements">
+        
+      <requirement_set caption="Supervisory Control">
+          <requirement id_code="CF-SC-1">
+              <description>The FARM plug-in shall support for user-defined instructions for adjusting the actuator value and provide admissible actuator range without violating any operational constraints.</description>
+          </requirement>
+      </requirement_set>
+
+    </requirement_group>
+        
+    
+    <requirement_group id="Performance Requirements">
+      <requirement_set caption="Infrastructure Support">
+          <requirement id_code="CF-IS-1">
+              <description>The FARM plug-in shall be able to be executed in parallel via RAVEN.</description>
+          </requirement>
+      </requirement_set>
+        
+    </requirement_group>
+
+
+    
+</requirements_specification>
+
+

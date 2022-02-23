@@ -1,0 +1,50 @@
+ \section{FARM:SYSTEM REQUIREMENTS} 
+ \subsection{Requirements Traceability Matrix} 
+ This section contains all of the requirements, requirements' description, and 
+ requirement test cases. The requirement tests are automatically tested for each 
+ CR (Change Request) by the CIS (Continuous Integration System). 
+ \newcolumntype{b}{X} 
+ \newcolumntype{s}{>{\hsize=.5\hsize}X} 
+ \subsubsection{Minimum Requirements} 
+\begin{tabularx}{\textwidth}{|s|s|b|} 
+\hline 
+\textbf{Requirment ID} & \textbf{Requirment Description} & \textbf{Test(s)}  \\ \hline 
+\hline 
+ \hspace{0pt}CF-M-1 & \hspace{0pt}Computer: Any POSIX (and POSIX-like) system & \hspace{0pt}1)``RAVEN User Manual'', INL/EXT-15-34123 2)Continous Integration System \\ \hline 
+\hline 
+ \hspace{0pt}CF-M-2 & \hspace{0pt}RAM: 2 GB per core execution (depending on the type of analysis and data genarated) & \hspace{0pt}1)``RAVEN User Manual'', INL/EXT-15-34123 2)Continous Integration System \\ \hline 
+\hline 
+ \hspace{0pt}CF-M-3 & \hspace{0pt}Language: Python 3.x & \hspace{0pt}1)``RAVEN User Manual'', INL/EXT-15-34123 2)Continous Integration System \\ \hline 
+\hline 
+\caption*{Minimum Requirements}
+\end{tabularx} 
+ \subsubsection{Functional Requirements} 
+\begin{tabularx}{\textwidth}{|s|s|b|} 
+\hline 
+\textbf{Requirment ID} & \textbf{Requirment Description} & \textbf{Test(s)}  \\ \hline 
+\hline 
+ \hspace{0pt}CF-F-1 & \hspace{0pt}The FARM plug-in shall allow user to provide parameterized state-space matrices XML file as input. & \hspace{0pt}1)D:\GitProjects\wanghy\_fork\FARM\tests\test\_RefGov\_para\_xmlABC.xml \\ \hline 
+\hline 
+ \hspace{0pt}CF-F-2 & \hspace{0pt}The FARM plug-in shall allow user to provide un-parameterized state-space matrices XML file as input. & \hspace{0pt}1)D:\GitProjects\wanghy\_fork\FARM\tests\test\_RefGov\_unpara\_xmlABC.xml \\ \hline 
+\hline 
+\caption*{Framework and I/O}
+\end{tabularx} 
+ \subsubsection{Usability Requirements} 
+\begin{tabularx}{\textwidth}{|s|s|b|} 
+\hline 
+\textbf{Requirment ID} & \textbf{Requirment Description} & \textbf{Test(s)}  \\ \hline 
+\hline 
+ \hspace{0pt}CF-SC-1 & \hspace{0pt}The FARM plug-in shall support for user-defined instructions for adjusting the actuator value and provide admissible actuator range without violating any operational constraints. & \hspace{0pt}1)D:\GitProjects\wanghy\_fork\FARM\tests\test\_RefGov\_para\_xmlABC.xml 2)D:\GitProjects\wanghy\_fork\FARM\tests\test\_RefGov\_unpara\_xmlABC.xml \\ \hline 
+\hline 
+\caption*{Supervisory Control}
+\end{tabularx} 
+ \subsubsection{Performance Requirements} 
+\begin{tabularx}{\textwidth}{|s|s|b|} 
+\hline 
+\textbf{Requirment ID} & \textbf{Requirment Description} & \textbf{Test(s)}  \\ \hline 
+\hline 
+ \hspace{0pt}CF-IS-1 & \hspace{0pt}The FARM plug-in shall be able to be executed in parallel via RAVEN. & \hspace{0pt}1)D:\GitProjects\wanghy\_fork\FARM\tests\test\_RefGov\_para\_xmlABC.xml 2)D:\GitProjects\wanghy\_fork\FARM\tests\test\_RefGov\_unpara\_xmlABC.xml \\ \hline 
+\hline 
+\caption*{Infrastructure Support}
+\end{tabularx} 
+\end{document}
