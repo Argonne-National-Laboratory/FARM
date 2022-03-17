@@ -1,0 +1,97 @@
+<Simulation verbosity="silent">
+  <TestInfo>
+    <name>plugins/FARM.RG_parameterized_SIMO</name>
+    <author>HaoyuWang</author>
+    <created>2021-02-01</created>
+    <classesTested>Models.ExternalModel.FARM</classesTested>
+    <description>
+      This is a test run of parameterized reference governor.
+      It loads ABC matrices from external xml file and calculate the feedback from RefGov_parameterized_SIMO external model.
+    </description>
+    <requirements>CF-F-1 CF-SC-1 CF-IS-1</requirements>
+  </TestInfo>
+  
+  <RunInfo>
+    <WorkingDir>DMDc_FARM_Folder</WorkingDir>
+    <Sequence>RGrun, printTOfile</Sequence>
+  </RunInfo>
+ 
+  <Files>
+    <Input name="ABCMatrices" type="">DMDcCxCoeff.xml</Input>
+  </Files>
+
+  <Models>
+    <ExternalModel name="RG1" subType="FARM.RefGov_parameterized_SIMO">
+      <!-- 3 output variables -->
+      <outputVariables>V, V_min, V_max </outputVariables>
+      <!-- 4 variables: Issued Setpoint(PwrSet), Adjusted Setpoint(V1), bounds of V1(V1min & V1max) -->
+      <variables> PwrSet, V, V_min, V_max </variables>
+      <!-- steps in MOAS calculation, "g" value -->
+      <constant varName="MOASsteps"> 360 </constant>
+      <!-- lower and upper bounds for y vector, will be internally checked -->
+      <constant varName="Min_Target1"> 20.0E6 </constant>
+      <constant varName="Max_Target1"> 50.0E6 </constant>
+      <constant varName="Min_Target2"> 1270. </constant>
+      <constant varName="Max_Target2"> 1410. </constant>
+      <!-- System state vector "x", optional, with elements separated by comma(,) -->
+      <!-- <constant varName="Sys_State_x"> 30.0E7 </constant> -->
+    </ExternalModel>
+  </Models>
+ 
+  <Distributions>
+    <Uniform name="one">
+      <lowerBound>10</lowerBound>
+      <upperBound>55</upperBound>
+    </Uniform>
+    <!-- distribution for PwrSet sampling -->
+  </Distributions>
+
+   <Samplers>
+    <MonteCarlo name="RG_Sampler">
+      <samplerInit>
+        <limit>20</limit>
+      </samplerInit>
+      <variable name="PwrSet">
+        <distribution>one</distribution>
+      </variable>
+    </MonteCarlo>
+    <!-- A MonteCarlo sampler for PwrSet sampling  -->
+  </Samplers>
+
+  <DataObjects>
+    <PointSet name="RGInput">
+      <Input>PwrSet </Input>
+      <Output>OutputPlaceHolder</Output>
+    </PointSet>
+    <PointSet name="RGOutput">
+      <Input>PwrSet </Input>
+      <Output>V, V_min, V_max </Output>
+    </PointSet>
+     <!-- input and output pointsets for RG -->
+  </DataObjects>
+
+  <Steps>
+    <MultiRun name="RGrun">
+      <Input      class="DataObjects"   type="PointSet">RGInput</Input>
+      <Input      class="Files"         type="">ABCMatrices</Input>
+      <Model      class="Models"        type="ExternalModel">RG1</Model>
+      <Sampler    class="Samplers"      type="MonteCarlo">RG_Sampler</Sampler>
+      <Output     class="DataObjects"   type="PointSet">RGOutput</Output>
+    </MultiRun>
+     <!-- MultiRun step to execute the plugin for multiple times -->
+     
+    <IOStep name="printTOfile">
+        <Input    class="DataObjects"   type="PointSet">RGOutput</Input>
+        <Output   class="OutStreams"    type="Print">RefGovOutput</Output>
+     </IOStep>
+     <!-- IOStep to dump the RGOutput to RefGovOutput.csv-->
+  </Steps>
+
+  <OutStreams>
+    <Print name="RefGovOutput">
+      <type>csv</type>
+      <source>RGOutput</source>
+      <what>input,output</what>
+    </Print>
+  </OutStreams>
+</Simulation>

@@ -1,0 +1,11 @@
+ActuatorParameter,x1_init,filename
+2.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_00_05MW.csv
+7.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_05_10MW.csv
+12.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_10_15MW.csv
+17.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_15_20MW.csv
+22.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_20_25MW.csv
+27.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_25_30MW.csv
+32.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_30_35MW.csv
+37.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_35_40MW.csv
+42.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_40_45MW.csv
+47.5,4746.094238,DMDcTrainingData/Rslt_23_04_02_TUYXSelected_SES_1e_p1_45_50MW.csv
