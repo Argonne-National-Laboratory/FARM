@@ -13,7 +13,7 @@ import math
 import scipy
 from fmpy import read_model_description, extract
 from fmpy.fmi2 import FMU2Slave
-from _utils import get_heron_loc, get_raven_loc
+from _utils import get_raven_loc, get_heron_loc, get_farm_loc
 from validators.Validator import Validator
 
 # set up raven path
@@ -99,6 +99,10 @@ class FARM_Beta(Validator):
             # magic word for "relative to HERON root"
             heron_path = get_heron_loc()
             matFile = os.path.abspath(matFile.replace('%HERON%', heron_path))
+          elif matFile.startswith('%FARM%'):
+            # magic word for "relative to HERON root"
+            farm_path = get_farm_loc()
+            matFile = os.path.abspath(matFile.replace('%FARM%', farm_path))
         if farmEntry.getName() == "OpConstraintsUpper":
           UpperBound = farmEntry.value
         if farmEntry.getName() == "OpConstraintsLower":
@@ -156,105 +160,106 @@ class FARM_Beta(Validator):
           max_eigA_id = eig_A_array.argmax()
           A_m = A_list[max_eigA_id]; B_m = B_list[max_eigA_id]; C_m = C_list[max_eigA_id]; D_m = np.zeros((p,m)) # all zero D matrix
 
-          # loop through the resources in info (only one resource here - electricity)
-          for res in info:
-            if str(res) == "electricity":
-              # loop through the time index (tidx) and time in "times"
-              if self._unitInfo[unit]['XInit']==[]:
-                x_sys = np.zeros(n)
-              else:
-                x_sys = np.asarray(self._unitInfo[unit]['XInit'])-XNorm_list[0]
+          for tracker in comp.get_tracking_vars():
+            # loop through the resources in info (only one resource here - electricity)
+            for res in info:
+              if str(res) == "electricity":
+                # loop through the time index (tidx) and time in "times"
+                if self._unitInfo[unit]['XInit']==[]:
+                  x_sys = np.zeros(n)
+                else:
+                  x_sys = np.asarray(self._unitInfo[unit]['XInit'])-XNorm_list[0]
 
 
-              for tidx, time in enumerate(times):
-                # Copy the system state variable
-                x_KF = x_sys
-                """ Get the r_value, original actuation value """
-                current = float(dispatch.get_activity(comp, res, times[tidx]))
-                # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
+                for tidx, time in enumerate(times):
+                  # Copy the system state variable
+                  x_KF = x_sys
+                  """ Get the r_value, original actuation value """
+                  current = float(dispatch.get_activity(comp, tracker, res, times[tidx]))
+                  # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
 
-                if comp.get_interaction().is_type('Storage') and tidx == 0:
-                  init_level = comp.get_interaction().get_initial_level(meta)
+                  if comp.get_interaction().is_type('Storage') and tidx == 0:
+                    init_level = comp.get_interaction().get_initial_level(meta)
 
-                if str(unit) == "TES":
-                  # Initial_Level = float(self._unitInfo[unit]['Initial_Level'])
-                  Initial_Level = float(init_level)
-                  if tidx == 0: # for the first hour, use the initial level. charging yields to negative r_value
-                    r_value = -(current - Initial_Level)/Tr_Update_hrs
-                  else: # for the other hours
-                    # r_value = -(current - float(dispatch.get_activity(comp, res, times[tidx-1])))/Tr_Update_hrs
-                    r_value = -(current - Allowed_Level)/Tr_Update_hrs
-                else: # when not TES,
-                  r_value = current # measured in MW
+                  if str(unit) == "TES":
+                    # Initial_Level = float(self._unitInfo[unit]['Initial_Level'])
+                    Initial_Level = float(init_level)
+                    if tidx == 0: # for the first hour, use the initial level. charging yields to negative r_value
+                      r_value = -(current - Initial_Level)/Tr_Update_hrs
+                    else: # for the other hours
+                      # r_value = -(current - float(dispatch.get_activity(comp, tracker, res, times[tidx-1])))/Tr_Update_hrs
+                      r_value = -(current - Allowed_Level)/Tr_Update_hrs
+                  else: # when not TES,
+                    r_value = current # measured in MW
 
-                """ Find the correct profile according to r_value"""
-                profile_id = (np.abs(para_array - r_value)).argmin()
+                  """ Find the correct profile according to r_value"""
+                  profile_id = (np.abs(para_array - r_value)).argmin()
 
-                # Retrive the correct A, B, C matrices
-                A_d = A_list[profile_id]; B_d = B_list[profile_id]; C_d = C_list[profile_id]; D_d = np.zeros((p,m)) # all zero D matrix
-                # Retrive the correct y_0, r_0 and X
-                y_0 = YNorm_list[profile_id]; r_0 = float(UNorm_list[profile_id])
+                  # Retrive the correct A, B, C matrices
+                  A_d = A_list[profile_id]; B_d = B_list[profile_id]; C_d = C_list[profile_id]; D_d = np.zeros((p,m)) # all zero D matrix
+                  # Retrive the correct y_0, r_0 and X
+                  y_0 = YNorm_list[profile_id]; r_0 = float(UNorm_list[profile_id])
 
-                # Build the s, H and h for MOAS
-                s = [] # type == <class 'list'>
-                for i in range(0,p):
-                  s.append([abs(y_max[i] - y_0[i])])
-                  s.append([abs(y_0[i] - y_min[i])])
+                  # Build the s, H and h for MOAS
+                  s = [] # type == <class 'list'>
+                  for i in range(0,p):
+                    s.append([abs(y_max[i] - y_0[i])])
+                    s.append([abs(y_0[i] - y_min[i])])
 
-                H, h = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g) # H and h, type = <class 'numpy.ndarray'>
+                  H, h = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g) # H and h, type = <class 'numpy.ndarray'>
 
-                # first v_RG: consider the step "0" - step "g"
-                v_RG = fun_RG_SISO(0, x_KF, r_value-r_0, H, h, p) # v_RG: type == <class 'numpy.ndarray'>
+                  # first v_RG: consider the step "0" - step "g"
+                  v_RG = fun_RG_SISO(0, x_KF, r_value-r_0, H, h, p) # v_RG: type == <class 'numpy.ndarray'>
 
-                """ 2nd adjustment """
-                # MOAS for the steps "g+1" - step "2g"
-                Hm, hm = fun_MOAS_noinf(A_m, B_m, C_m, D_m, s, g)
-                # Calculate the max/min for v, ensuring the hm-Hxm*x(g+1) always positive for the next g steps.
-                v_max, v_min = fun_2nd_gstep_calc(x_KF, Hm, hm, A_m, B_m, g)
+                  """ 2nd adjustment """
+                  # MOAS for the steps "g+1" - step "2g"
+                  Hm, hm = fun_MOAS_noinf(A_m, B_m, C_m, D_m, s, g)
+                  # Calculate the max/min for v, ensuring the hm-Hxm*x(g+1) always positive for the next g steps.
+                  v_max, v_min = fun_2nd_gstep_calc(x_KF, Hm, hm, A_m, B_m, g)
 
-                if v_RG < v_min:
-                  v_RG = v_min
-                elif v_RG > v_max:
-                  v_RG = v_max
+                  if v_RG < v_min:
+                    v_RG = v_min
+                  elif v_RG > v_max:
+                    v_RG = v_max
 
-                # # Pretend there is no FARM intervention
-                # v_RG = np.asarray(r_value-r_0).flatten()
+                  # # Pretend there is no FARM intervention
+                  # v_RG = np.asarray(r_value-r_0).flatten()
 
-                v_value = v_RG + r_0 # absolute value of electrical power (MW)
-                v_value = float(v_value)
+                  v_value = v_RG + r_0 # absolute value of electrical power (MW)
+                  v_value = float(v_value)
 
-                # Update x_sys, and keep record in v_hist and yp_hist within this hour
-                for i in range(int(Tr_Update_sec/Tss)):
-                  self._unitInfo[unit]['v_hist'].append(v_value)
-                  y_sim = np.dot(C_d,x_sys)
-                  self._unitInfo[unit]['y_hist'].append(y_sim+y_0)
-                  x_sys = np.dot(A_d,x_sys)+np.dot(B_d,v_RG)
+                  # Update x_sys, and keep record in v_hist and yp_hist within this hour
+                  for i in range(int(Tr_Update_sec/Tss)):
+                    self._unitInfo[unit]['v_hist'].append(v_value)
+                    y_sim = np.dot(C_d,x_sys)
+                    self._unitInfo[unit]['y_hist'].append(y_sim+y_0)
+                    x_sys = np.dot(A_d,x_sys)+np.dot(B_d,v_RG)
 
-                # Convert to V1:
+                  # Convert to V1:
 
-                # if str(unit) == "TES":
-                if comp.get_interaction().is_type('Storage'):
-                  if tidx == 0: # for the first hour, use the initial level
-                    Allowed_Level = Initial_Level - v_value*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
-                  else: # for the other hours
-                    Allowed_Level = Allowed_Level - v_value*Tr_Update_hrs
-                  V1 = Allowed_Level
-                else: # when not TES,
-                  V1 = v_value
+                  # if str(unit) == "TES":
+                  if comp.get_interaction().is_type('Storage'):
+                    if tidx == 0: # for the first hour, use the initial level
+                      Allowed_Level = Initial_Level - v_value*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
+                    else: # for the other hours
+                      Allowed_Level = Allowed_Level - v_value*Tr_Update_hrs
+                    V1 = Allowed_Level
+                  else: # when not TES,
+                    V1 = v_value
 
-                # print("Haoyu Debug, unit=",str(unit),", t=",time, ", curr= %.8g, V1= %.8g, delta=%.8g" %(current, V1, (V1-current)))
+                  # print("Haoyu Debug, unit=",str(unit),", t=",time, ", curr= %.8g, V1= %.8g, delta=%.8g" %(current, V1, (V1-current)))
 
-                # Write up any violation to the errs:
-                if abs(current - V1) > self._tolerance*max(abs(current),abs(V1)):
-                  # violation
-                  errs.append({'msg': f'Reference Governor Violation',
-                              'limit': V1,
-                              'limit_type': 'lower' if (current < V1) else 'upper',
-                              'component': comp,
-                              'resource': res,
-                              'time': time,
-                              'time_index': tidx,
-                              })
+                  # Write up any violation to the errs:
+                  if abs(current - V1) > self._tolerance*max(abs(current),abs(V1)):
+                    # violation
+                    errs.append({'msg': f'Reference Governor Violation',
+                                'limit': V1,
+                                'limit_type': 'lower' if (current < V1) else 'upper',
+                                'component': comp,
+                                'resource': res,
+                                'time': time,
+                                'time_index': tidx,
+                                })
 
     if errs == []: # if no validation error:
       print(" ")
@@ -358,6 +363,10 @@ class FARM_Gamma_LTI(Validator):
             # magic word for "relative to HERON root"
             heron_path = get_heron_loc()
             matFile = os.path.abspath(matFile.replace('%HERON%', heron_path))
+          elif matFile.startswith('%FARM%'):
+            # magic word for "relative to HERON root"
+            farm_path = get_farm_loc()
+            matFile = os.path.abspath(matFile.replace('%FARM%', farm_path))
         if farmEntry.getName() == "SystemProfile":
           systemProfile = farmEntry.value
         if farmEntry.getName() == "LearningSetpoints":
@@ -639,176 +648,177 @@ class FARM_Gamma_LTI(Validator):
           s = np.asarray(s).tolist()
           # print(s)
 
-          # loop through the resources in info (only one resource here - electricity)
-          for res in info:
-            if str(res) == "electricity":
-              # Initiate the linear system
-              if self._unitInfo[unit]['XInit']==[]:
-                x_sys_internal = np.zeros(n)
-              else:
-                x_sys_internal = np.asarray(self._unitInfo[unit]['XInit'])-x_0[0]
-                # print("Step 6, x_sys_internal=",x_sys_internal)
-
-              # loop through the time index (tidx) and time in "times"
-              # t_idx = t_idx+1
-              for tidx, time in enumerate(times):
-                # Copy the system state variable
-                x_KF = x_sys_internal
-                """ Get the r_value, original actuation value """
-                current = float(dispatch.get_activity(comp, res, times[tidx]))
-                # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
-
-                if comp.get_interaction().is_type('Storage') and tidx == 0:
-                  init_level = comp.get_interaction().get_initial_level(meta)
-
-                if comp.get_interaction().is_type('Storage'):
-                  # Initial_Level = float(self._unitInfo[unit]['Initial_Level'])
-                  Initial_Level = float(init_level)
-                  if tidx == 0: # for the first hour, use the initial level. charging yields to negative r_value
-                    r_value = -(current - Initial_Level)/Tr_Update_hrs
-                  else: # for the other hours
-                    # r_value = -(current - float(dispatch.get_activity(comp, res, times[tidx-1])))/Tr_Update_hrs
-                    r_value = -(current - Allowed_Level)/Tr_Update_hrs
-                else: # when not TES,
-                  r_value = current # measured in MW
-
-                """ Find the correct profile according to r_value"""
-                profile_id = (np.abs(np.asarray(self._unitInfo[unit]['para_list']) - r_value)).argmin()
-                # print("t_idx=",t_idx, "t=",t)
-
-                # Retrive the correct A, B, C matrices
-                A_d = self._unitInfo[unit]['A_list'][profile_id]
-                B_d = self._unitInfo[unit]['B_list'][profile_id]
-                C_d = self._unitInfo[unit]['C_list'][profile_id]
-                D_d = np.zeros((p,m)) # all zero D matrix
-                
-                # Build the s, H and h for MOAS
-                
-                H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g)  # H and h, type = <class 'numpy.ndarray'>
-            
-                # first v_RG: consider the step "0" - step "g"
-                v_RG = fun_RG_SISO(0, x_KF, r_value-v_0, H_DMDc, h_DMDc, p) # v_RG: type == <class 'numpy.ndarray'>
-
-                # find the profile with max eigenvalue of A
-                max_eigA_id = np.asarray(self._unitInfo[unit]['eig_A_list']).argmax()
-                A_m = self._unitInfo[unit]['A_list'][max_eigA_id]
-                B_m = self._unitInfo[unit]['B_list'][max_eigA_id]
-                C_m = self._unitInfo[unit]['C_list'][max_eigA_id]
-                D_m = np.zeros((p,m)) # all zero D matrix
-
-                """ 2nd adjustment """
-                # MOAS for the steps "g+1" - step "2g"
-                Hm, hm = fun_MOAS_noinf(A_m, B_m, C_m, D_m, s, g)
-                # Calculate the max/min for v, ensuring the hm-Hxm*x(g+1) always positive for the next g steps.
-                v_max, v_min = fun_2nd_gstep_calc(x_KF, Hm, hm, A_m, B_m, g)
-
-                if v_RG < v_min:
-                  v_RG = v_min
-                elif v_RG > v_max:
-                  v_RG = v_max
-
-                # # Pretend there is no FARM intervention
-                # v_RG = np.asarray(r_value-r_0).flatten()
-
-                v_RG = float(v_RG)+float(v_0) # absolute value of electrical power (MW)
-                print("\n**************************", "\n**** RG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nr = ", r_value, "\nProfile Selected = ", profile_id, "\nv_RG = ", v_RG, "\n***** RG summary End *****","\n**************************\n")
-            
-                # Update x_sys_internal, and keep record in v_hist and yp_hist within this hour
-                for i in range(int(Tr_Update_sec/Tss)):
-                  # fetch y
-                  y_sim_internal = np.dot(C_sys,x_sys_internal).reshape(p,-1)
-                  y_fetch = (y_sim_internal + Y_0_sys).reshape(p,) 
-                  
-                  # fetch v and x
-                  v_fetch = np.asarray(v_RG).reshape(m,)
-                  x_fetch = (x_sys_internal + X_0_sys).reshape(n,)
-                  
-                  self._unitInfo[unit]['t_hist'].append(t)  # input v
-                  self._unitInfo[unit]['v_hist'].append(v_fetch)  # input v
-                  self._unitInfo[unit]['x_hist'].append(x_fetch)  # state x
-                  self._unitInfo[unit]['y_hist'].append(y_fetch)  # output y
-
-                  # step update x
-                  x_sys_internal = np.dot(A_sys,x_sys_internal)+np.dot(B_sys,v_RG-float(U_0_sys))
-                  t = t + Tss
-
-                # Convert to V1:
-
-                # if str(unit) == "TES":
-                if comp.get_interaction().is_type('Storage'):
-                  if tidx == 0: # for the first hour, use the initial level
-                    Allowed_Level = Initial_Level - v_RG*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
-                  else: # for the other hours
-                    Allowed_Level = Allowed_Level - v_RG*Tr_Update_hrs
-                  V1 = Allowed_Level
-                else: # when not storage,
-                  V1 = v_RG
-
-                # print("Haoyu Debug, unit=",str(unit),", t=",time, ", curr= %.8g, V1= %.8g, delta=%.8g" %(current, V1, (V1-current)))
-
-                # Collect data for DMDc
-                t_window = np.asarray(self._unitInfo[unit]['t_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(1,-1)
-                v_window = np.asarray(self._unitInfo[unit]['v_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(m,-1)
-                x_window = np.asarray(self._unitInfo[unit]['x_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T
-                y_window = np.asarray(self._unitInfo[unit]['y_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T  
-
-                # Do the DMDc, and return ABCD matrices
-                U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
-                Do_DMDc = False
-                if abs(np.max(U1)-np.min(U1))>1e-6 and t_idx!=len(LearningSetpoints): # if there is transient, DMDc can be done: # if transient found within this window
-                  if np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) > 1.0: 
-                    # if the nearest parameter is more than 1 MW apart, do DMDc
-                    Do_DMDc = True
-
-                if Do_DMDc:  # print(U1.shape)
-                  Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
-                  # Dd_Dc = np.zeros((p,m))
-                  
-                  # append the A,B,C,D matrices to an list
-                  self._unitInfo[unit]['A_list'].append(Ad_Dc); 
-                  self._unitInfo[unit]['B_list'].append(Bd_Dc); 
-                  self._unitInfo[unit]['C_list'].append(Cd_Dc); 
-                  self._unitInfo[unit]['para_list'].append(float(U1[:,-1]+v_0)); 
-                  self._unitInfo[unit]['eig_A_list'].append(np.max(np.linalg.eig(Ad_Dc)[0]))
-                  self._unitInfo[unit]['tTran_list'].append(t-Tr_Update_sec)
-                  print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
-                  print("&&& DMDc summary Start &&&")
-                  print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
-                  print("A_list=\n",self._unitInfo[unit]['A_list'])
-                  print("B_list=\n",self._unitInfo[unit]['B_list'])
-                  print("C_list=\n",self._unitInfo[unit]['C_list'])
-                  print("para_list=\n",self._unitInfo[unit]['para_list'])
-                  print("eig_A_list=\n",self._unitInfo[unit]['eig_A_list'])
-                  print("tTran_list=\n",self._unitInfo[unit]['tTran_list'])
-                  print("&&&& DMDc summary End &&&&")
-                  print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
-                  # print(a)
+          for tracker in comp.get_tracking_vars():
+            # loop through the resources in info (only one resource here - electricity)
+            for res in info:
+              if str(res) == "electricity":
+                # Initiate the linear system
+                if self._unitInfo[unit]['XInit']==[]:
+                  x_sys_internal = np.zeros(n)
                 else:
-                  print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
-                  print("&&& DMDc was not done. &&&")
-                  print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
-                  if abs(np.max(U1)-np.min(U1))<=1e-6 or t_idx==len(LearningSetpoints):
-                    if abs(np.max(U1)-np.min(U1))<=1e-6:
-                      print("Reason: Transient is too small. v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
-                    if t_idx==len(LearningSetpoints):
-                      print("Reason: System is initialized at t =",t-Tr_Update_sec)
-                  elif np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) <= 1.0: 
-                    print("Reason: New parameter is too close to existing parameter [{}].".format(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1]).argmin()))
-                    print("New parameter =", v_window[:,-1], "Para_list =",self._unitInfo[unit]['para_list'])
-                  print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
-                t_idx = t_idx+1
+                  x_sys_internal = np.asarray(self._unitInfo[unit]['XInit'])-x_0[0]
+                  # print("Step 6, x_sys_internal=",x_sys_internal)
 
-                # Write up any violation to the errs:
-                if abs(current - V1) > self._tolerance*max(abs(current),abs(V1)):
-                  # violation
-                  errs.append({'msg': f'Reference Governor Violation',
-                              'limit': V1,
-                              'limit_type': 'lower' if (current < V1) else 'upper',
-                              'component': comp,
-                              'resource': res,
-                              'time': time,
-                              'time_index': tidx,
-                              })
+                # loop through the time index (tidx) and time in "times"
+                # t_idx = t_idx+1
+                for tidx, time in enumerate(times):
+                  # Copy the system state variable
+                  x_KF = x_sys_internal
+                  """ Get the r_value, original actuation value """
+                  current = float(dispatch.get_activity(comp, tracker, res, times[tidx]))
+                  # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
+
+                  if comp.get_interaction().is_type('Storage') and tidx == 0:
+                    init_level = comp.get_interaction().get_initial_level(meta)
+
+                  if comp.get_interaction().is_type('Storage'):
+                    # Initial_Level = float(self._unitInfo[unit]['Initial_Level'])
+                    Initial_Level = float(init_level)
+                    if tidx == 0: # for the first hour, use the initial level. charging yields to negative r_value
+                      r_value = -(current - Initial_Level)/Tr_Update_hrs
+                    else: # for the other hours
+                      # r_value = -(current - float(dispatch.get_activity(comp, tracker, res, times[tidx-1])))/Tr_Update_hrs
+                      r_value = -(current - Allowed_Level)/Tr_Update_hrs
+                  else: # when not TES,
+                    r_value = current # measured in MW
+
+                  """ Find the correct profile according to r_value"""
+                  profile_id = (np.abs(np.asarray(self._unitInfo[unit]['para_list']) - r_value)).argmin()
+                  # print("t_idx=",t_idx, "t=",t)
+
+                  # Retrive the correct A, B, C matrices
+                  A_d = self._unitInfo[unit]['A_list'][profile_id]
+                  B_d = self._unitInfo[unit]['B_list'][profile_id]
+                  C_d = self._unitInfo[unit]['C_list'][profile_id]
+                  D_d = np.zeros((p,m)) # all zero D matrix
+                  
+                  # Build the s, H and h for MOAS
+                  
+                  H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g)  # H and h, type = <class 'numpy.ndarray'>
+              
+                  # first v_RG: consider the step "0" - step "g"
+                  v_RG = fun_RG_SISO(0, x_KF, r_value-v_0, H_DMDc, h_DMDc, p) # v_RG: type == <class 'numpy.ndarray'>
+
+                  # find the profile with max eigenvalue of A
+                  max_eigA_id = np.asarray(self._unitInfo[unit]['eig_A_list']).argmax()
+                  A_m = self._unitInfo[unit]['A_list'][max_eigA_id]
+                  B_m = self._unitInfo[unit]['B_list'][max_eigA_id]
+                  C_m = self._unitInfo[unit]['C_list'][max_eigA_id]
+                  D_m = np.zeros((p,m)) # all zero D matrix
+
+                  """ 2nd adjustment """
+                  # MOAS for the steps "g+1" - step "2g"
+                  Hm, hm = fun_MOAS_noinf(A_m, B_m, C_m, D_m, s, g)
+                  # Calculate the max/min for v, ensuring the hm-Hxm*x(g+1) always positive for the next g steps.
+                  v_max, v_min = fun_2nd_gstep_calc(x_KF, Hm, hm, A_m, B_m, g)
+
+                  if v_RG < v_min:
+                    v_RG = v_min
+                  elif v_RG > v_max:
+                    v_RG = v_max
+
+                  # # Pretend there is no FARM intervention
+                  # v_RG = np.asarray(r_value-r_0).flatten()
+
+                  v_RG = float(v_RG)+float(v_0) # absolute value of electrical power (MW)
+                  print("\n**************************", "\n**** RG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nr = ", r_value, "\nProfile Selected = ", profile_id, "\nv_RG = ", v_RG, "\n***** RG summary End *****","\n**************************\n")
+              
+                  # Update x_sys_internal, and keep record in v_hist and yp_hist within this hour
+                  for i in range(int(Tr_Update_sec/Tss)):
+                    # fetch y
+                    y_sim_internal = np.dot(C_sys,x_sys_internal).reshape(p,-1)
+                    y_fetch = (y_sim_internal + Y_0_sys).reshape(p,) 
+                    
+                    # fetch v and x
+                    v_fetch = np.asarray(v_RG).reshape(m,)
+                    x_fetch = (x_sys_internal + X_0_sys).reshape(n,)
+                    
+                    self._unitInfo[unit]['t_hist'].append(t)  # input v
+                    self._unitInfo[unit]['v_hist'].append(v_fetch)  # input v
+                    self._unitInfo[unit]['x_hist'].append(x_fetch)  # state x
+                    self._unitInfo[unit]['y_hist'].append(y_fetch)  # output y
+
+                    # step update x
+                    x_sys_internal = np.dot(A_sys,x_sys_internal)+np.dot(B_sys,v_RG-float(U_0_sys))
+                    t = t + Tss
+
+                  # Convert to V1:
+
+                  # if str(unit) == "TES":
+                  if comp.get_interaction().is_type('Storage'):
+                    if tidx == 0: # for the first hour, use the initial level
+                      Allowed_Level = Initial_Level - v_RG*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
+                    else: # for the other hours
+                      Allowed_Level = Allowed_Level - v_RG*Tr_Update_hrs
+                    V1 = Allowed_Level
+                  else: # when not storage,
+                    V1 = v_RG
+
+                  # print("Haoyu Debug, unit=",str(unit),", t=",time, ", curr= %.8g, V1= %.8g, delta=%.8g" %(current, V1, (V1-current)))
+
+                  # Collect data for DMDc
+                  t_window = np.asarray(self._unitInfo[unit]['t_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(1,-1)
+                  v_window = np.asarray(self._unitInfo[unit]['v_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(m,-1)
+                  x_window = np.asarray(self._unitInfo[unit]['x_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T
+                  y_window = np.asarray(self._unitInfo[unit]['y_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T  
+
+                  # Do the DMDc, and return ABCD matrices
+                  U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
+                  Do_DMDc = False
+                  if abs(np.max(U1)-np.min(U1))>1e-6 and t_idx!=len(LearningSetpoints): # if there is transient, DMDc can be done: # if transient found within this window
+                    if np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) > 1.0: 
+                      # if the nearest parameter is more than 1 MW apart, do DMDc
+                      Do_DMDc = True
+
+                  if Do_DMDc:  # print(U1.shape)
+                    Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
+                    # Dd_Dc = np.zeros((p,m))
+                    
+                    # append the A,B,C,D matrices to an list
+                    self._unitInfo[unit]['A_list'].append(Ad_Dc); 
+                    self._unitInfo[unit]['B_list'].append(Bd_Dc); 
+                    self._unitInfo[unit]['C_list'].append(Cd_Dc); 
+                    self._unitInfo[unit]['para_list'].append(float(U1[:,-1]+v_0)); 
+                    self._unitInfo[unit]['eig_A_list'].append(np.max(np.linalg.eig(Ad_Dc)[0]))
+                    self._unitInfo[unit]['tTran_list'].append(t-Tr_Update_sec)
+                    print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                    print("&&& DMDc summary Start &&&")
+                    print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                    print("A_list=\n",self._unitInfo[unit]['A_list'])
+                    print("B_list=\n",self._unitInfo[unit]['B_list'])
+                    print("C_list=\n",self._unitInfo[unit]['C_list'])
+                    print("para_list=\n",self._unitInfo[unit]['para_list'])
+                    print("eig_A_list=\n",self._unitInfo[unit]['eig_A_list'])
+                    print("tTran_list=\n",self._unitInfo[unit]['tTran_list'])
+                    print("&&&& DMDc summary End &&&&")
+                    print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+                    # print(a)
+                  else:
+                    print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                    print("&&& DMDc was not done. &&&")
+                    print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                    if abs(np.max(U1)-np.min(U1))<=1e-6 or t_idx==len(LearningSetpoints):
+                      if abs(np.max(U1)-np.min(U1))<=1e-6:
+                        print("Reason: Transient is too small. v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                      if t_idx==len(LearningSetpoints):
+                        print("Reason: System is initialized at t =",t-Tr_Update_sec)
+                    elif np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) <= 1.0: 
+                      print("Reason: New parameter is too close to existing parameter [{}].".format(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1]).argmin()))
+                      print("New parameter =", v_window[:,-1], "Para_list =",self._unitInfo[unit]['para_list'])
+                    print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+                  t_idx = t_idx+1
+
+                  # Write up any violation to the errs:
+                  if abs(current - V1) > self._tolerance*max(abs(current),abs(V1)):
+                    # violation
+                    errs.append({'msg': f'Reference Governor Violation',
+                                'limit': V1,
+                                'limit_type': 'lower' if (current < V1) else 'upper',
+                                'component': comp,
+                                'resource': res,
+                                'time': time,
+                                'time_index': tidx,
+                                })
 
     if errs == []: # if no validation error:
       print(" ")
@@ -915,6 +925,10 @@ class FARM_Gamma_FMU(Validator):
             # magic word for "relative to HERON root"
             heron_path = get_heron_loc()
             fmuFile = os.path.abspath(fmuFile.replace('%HERON%', heron_path))
+          elif fmuFile.startswith('%FARM%'):
+            # magic word for "relative to HERON root"
+            farm_path = get_farm_loc()
+            fmuFile = os.path.abspath(fmuFile.replace('%FARM%', farm_path))
         if farmEntry.getName() == "FMUSimulationStep":
           FMUSimulationStep = farmEntry.value
         if farmEntry.getName() == "InputVarNames":
@@ -1235,180 +1249,181 @@ class FARM_Gamma_FMU(Validator):
           s = np.asarray(s).tolist()
           # print(s)
 
-          # loop through the resources in info (only one resource here - electricity)
-          for res in info:
-            if str(res) == "electricity":
-              # Initialize FMU
-              fmu.instantiate()
-              fmu.setupExperiment(startTime=T_delaystart)
-              fmu.enterInitializationMode()
-              fmu.exitInitializationMode()
+          for tracker in comp.get_tracking_vars():
+            # loop through the resources in info (only one resource here - electricity)
+            for res in info:
+              if str(res) == "electricity":
+                # Initialize FMU
+                fmu.instantiate()
+                fmu.setupExperiment(startTime=T_delaystart)
+                fmu.enterInitializationMode()
+                fmu.exitInitializationMode()
+                
+                # loop through the time index (tidx) and time in "times"
+                # t_idx = t_idx+1
+                for tidx, time in enumerate(times):
+                  # Copy the system state variable
+                  x_KF = np.asarray(fmu.getReal(vr_state))-x_0.reshape(n,)
+                  # print("time=",time,", x_KF=",x_KF)
+                  # print("x_0 reshape=",x_0.reshape(n,))
+                  """ Get the r_value, original actuation value """
+                  current = float(dispatch.get_activity(comp, tracker, res, times[tidx]))
+                  # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
+
+                  if comp.get_interaction().is_type('Storage') and tidx == 0:
+                    init_level = comp.get_interaction().get_initial_level(meta)
+
+                  if comp.get_interaction().is_type('Storage'):
+                    # Initial_Level = float(self._unitInfo[unit]['Initial_Level'])
+                    Initial_Level = float(init_level)
+                    if tidx == 0: # for the first hour, use the initial level. charging yields to negative r_value
+                      r_value = -(current - Initial_Level)/Tr_Update_hrs
+                    else: # for the other hours
+                      # r_value = -(current - float(dispatch.get_activity(comp, tracker, res, times[tidx-1])))/Tr_Update_hrs
+                      r_value = -(current - Allowed_Level)/Tr_Update_hrs
+                  else: # when not TES,
+                    r_value = current # measured in MW
+
+                  """ Find the correct profile according to r_value"""
+                  profile_id = (np.abs(np.asarray(self._unitInfo[unit]['para_list']) - r_value)).argmin()
+                  # print("t_idx=",t_idx, "t=",t)
+
+                  # Retrive the correct A, B, C matrices
+                  A_d = self._unitInfo[unit]['A_list'][profile_id]
+                  B_d = self._unitInfo[unit]['B_list'][profile_id]
+                  C_d = self._unitInfo[unit]['C_list'][profile_id]
+                  D_d = np.zeros((p,m)) # all zero D matrix
+                  
+                  # Build the s, H and h for MOAS
+                  
+                  H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g)  # H and h, type = <class 'numpy.ndarray'>
               
-              # loop through the time index (tidx) and time in "times"
-              # t_idx = t_idx+1
-              for tidx, time in enumerate(times):
-                # Copy the system state variable
-                x_KF = np.asarray(fmu.getReal(vr_state))-x_0.reshape(n,)
-                # print("time=",time,", x_KF=",x_KF)
-                # print("x_0 reshape=",x_0.reshape(n,))
-                """ Get the r_value, original actuation value """
-                current = float(dispatch.get_activity(comp, res, times[tidx]))
-                # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
+                  # first v_RG: consider the step "0" - step "g"
+                  v_RG = fun_RG_SISO(0, x_KF, r_value-v_0, H_DMDc, h_DMDc, p) # v_RG: type == <class 'numpy.ndarray'>
 
-                if comp.get_interaction().is_type('Storage') and tidx == 0:
-                  init_level = comp.get_interaction().get_initial_level(meta)
+                  # find the profile with max eigenvalue of A
+                  max_eigA_id = np.asarray(self._unitInfo[unit]['eig_A_list']).argmax()
+                  A_m = self._unitInfo[unit]['A_list'][max_eigA_id]
+                  B_m = self._unitInfo[unit]['B_list'][max_eigA_id]
+                  C_m = self._unitInfo[unit]['C_list'][max_eigA_id]
+                  D_m = np.zeros((p,m)) # all zero D matrix
 
-                if comp.get_interaction().is_type('Storage'):
-                  # Initial_Level = float(self._unitInfo[unit]['Initial_Level'])
-                  Initial_Level = float(init_level)
-                  if tidx == 0: # for the first hour, use the initial level. charging yields to negative r_value
-                    r_value = -(current - Initial_Level)/Tr_Update_hrs
-                  else: # for the other hours
-                    # r_value = -(current - float(dispatch.get_activity(comp, res, times[tidx-1])))/Tr_Update_hrs
-                    r_value = -(current - Allowed_Level)/Tr_Update_hrs
-                else: # when not TES,
-                  r_value = current # measured in MW
+                  """ 2nd adjustment """
+                  # MOAS for the steps "g+1" - step "2g"
+                  Hm, hm = fun_MOAS_noinf(A_m, B_m, C_m, D_m, s, g)
+                  # Calculate the max/min for v, ensuring the hm-Hxm*x(g+1) always positive for the next g steps.
+                  v_max, v_min = fun_2nd_gstep_calc(x_KF, Hm, hm, A_m, B_m, g)
 
-                """ Find the correct profile according to r_value"""
-                profile_id = (np.abs(np.asarray(self._unitInfo[unit]['para_list']) - r_value)).argmin()
-                # print("t_idx=",t_idx, "t=",t)
+                  if v_RG < v_min:
+                    v_RG = v_min
+                  elif v_RG > v_max:
+                    v_RG = v_max
 
-                # Retrive the correct A, B, C matrices
-                A_d = self._unitInfo[unit]['A_list'][profile_id]
-                B_d = self._unitInfo[unit]['B_list'][profile_id]
-                C_d = self._unitInfo[unit]['C_list'][profile_id]
-                D_d = np.zeros((p,m)) # all zero D matrix
-                
-                # Build the s, H and h for MOAS
-                
-                H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g)  # H and h, type = <class 'numpy.ndarray'>
-            
-                # first v_RG: consider the step "0" - step "g"
-                v_RG = fun_RG_SISO(0, x_KF, r_value-v_0, H_DMDc, h_DMDc, p) # v_RG: type == <class 'numpy.ndarray'>
+                  # # Pretend there is no FARM intervention
+                  # v_RG = np.asarray(r_value-r_0).flatten()
 
-                # find the profile with max eigenvalue of A
-                max_eigA_id = np.asarray(self._unitInfo[unit]['eig_A_list']).argmax()
-                A_m = self._unitInfo[unit]['A_list'][max_eigA_id]
-                B_m = self._unitInfo[unit]['B_list'][max_eigA_id]
-                C_m = self._unitInfo[unit]['C_list'][max_eigA_id]
-                D_m = np.zeros((p,m)) # all zero D matrix
+                  v_RG = float(v_RG)+float(v_0) # absolute value of electrical power (MW)
+                  print("\n**************************", "\n**** RG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nr = ", r_value, "\nProfile Selected = ", profile_id, "\nv_RG = ", v_RG, "\n***** RG summary End *****","\n**************************\n")
+              
+                  # Update x_sys_internal, and keep record in v_hist and yp_hist within this hour
+                  for i in range(int(Tr_Update_sec/Tss)):
+                    # fetch y
+                    y_fetch = np.asarray(fmu.getReal(vr_output))
 
-                """ 2nd adjustment """
-                # MOAS for the steps "g+1" - step "2g"
-                Hm, hm = fun_MOAS_noinf(A_m, B_m, C_m, D_m, s, g)
-                # Calculate the max/min for v, ensuring the hm-Hxm*x(g+1) always positive for the next g steps.
-                v_max, v_min = fun_2nd_gstep_calc(x_KF, Hm, hm, A_m, B_m, g)
+                    # fetch v and x
+                    v_fetch = np.asarray(v_RG).reshape(m,)
+                    x_fetch = np.asarray(fmu.getReal(vr_state))
+                    
+                    # set the input. The input / state / output in FMU are real-world values
+                    fmu.setReal(vr_input, [v_RG])
+                    # perform one step
+                    fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
 
-                if v_RG < v_min:
-                  v_RG = v_min
-                elif v_RG > v_max:
-                  v_RG = v_max
+                    self._unitInfo[unit]['t_hist'].append(t)  # input v
+                    self._unitInfo[unit]['v_hist'].append(v_fetch)  # input v
+                    self._unitInfo[unit]['x_hist'].append(x_fetch)  # state x
+                    self._unitInfo[unit]['y_hist'].append(y_fetch)  # output y
 
-                # # Pretend there is no FARM intervention
-                # v_RG = np.asarray(r_value-r_0).flatten()
+                    # time increment
+                    t = t + Tss
 
-                v_RG = float(v_RG)+float(v_0) # absolute value of electrical power (MW)
-                print("\n**************************", "\n**** RG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nr = ", r_value, "\nProfile Selected = ", profile_id, "\nv_RG = ", v_RG, "\n***** RG summary End *****","\n**************************\n")
-            
-                # Update x_sys_internal, and keep record in v_hist and yp_hist within this hour
-                for i in range(int(Tr_Update_sec/Tss)):
-                  # fetch y
-                  y_fetch = np.asarray(fmu.getReal(vr_output))
+                  # Convert to V1:
 
-                  # fetch v and x
-                  v_fetch = np.asarray(v_RG).reshape(m,)
-                  x_fetch = np.asarray(fmu.getReal(vr_state))
-                  
-                  # set the input. The input / state / output in FMU are real-world values
-                  fmu.setReal(vr_input, [v_RG])
-                  # perform one step
-                  fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
+                  # if str(unit) == "TES":
+                  if comp.get_interaction().is_type('Storage'):
+                    if tidx == 0: # for the first hour, use the initial level
+                      Allowed_Level = Initial_Level - v_RG*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
+                    else: # for the other hours
+                      Allowed_Level = Allowed_Level - v_RG*Tr_Update_hrs
+                    V1 = Allowed_Level
+                  else: # when not storage,
+                    V1 = v_RG
 
-                  self._unitInfo[unit]['t_hist'].append(t)  # input v
-                  self._unitInfo[unit]['v_hist'].append(v_fetch)  # input v
-                  self._unitInfo[unit]['x_hist'].append(x_fetch)  # state x
-                  self._unitInfo[unit]['y_hist'].append(y_fetch)  # output y
+                  # print("Haoyu Debug, unit=",str(unit),", t=",time, ", curr= %.8g, V1= %.8g, delta=%.8g" %(current, V1, (V1-current)))
 
-                  # time increment
-                  t = t + Tss
+                  # Collect data for DMDc
+                  t_window = np.asarray(self._unitInfo[unit]['t_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(1,-1)
+                  v_window = np.asarray(self._unitInfo[unit]['v_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(m,-1)
+                  x_window = np.asarray(self._unitInfo[unit]['x_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T
+                  y_window = np.asarray(self._unitInfo[unit]['y_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T  
 
-                # Convert to V1:
+                  # Do the DMDc, and return ABCD matrices
+                  U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
+                  Do_DMDc = False
+                  if abs(np.max(U1)-np.min(U1))>1e-6 and t_idx!=len(LearningSetpoints): # if there is transient, DMDc can be done: # if transient found within this window
+                    if np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) > 1.0: 
+                      # if the nearest parameter is more than 1 MW apart, do DMDc
+                      Do_DMDc = True
 
-                # if str(unit) == "TES":
-                if comp.get_interaction().is_type('Storage'):
-                  if tidx == 0: # for the first hour, use the initial level
-                    Allowed_Level = Initial_Level - v_RG*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
-                  else: # for the other hours
-                    Allowed_Level = Allowed_Level - v_RG*Tr_Update_hrs
-                  V1 = Allowed_Level
-                else: # when not storage,
-                  V1 = v_RG
+                  if Do_DMDc:  # print(U1.shape)
+                    Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
+                    # Dd_Dc = np.zeros((p,m))
+                    
+                    # append the A,B,C,D matrices to an list
+                    self._unitInfo[unit]['A_list'].append(Ad_Dc); 
+                    self._unitInfo[unit]['B_list'].append(Bd_Dc); 
+                    self._unitInfo[unit]['C_list'].append(Cd_Dc); 
+                    self._unitInfo[unit]['para_list'].append(float(U1[:,-1]+v_0)); 
+                    self._unitInfo[unit]['eig_A_list'].append(np.max(np.linalg.eig(Ad_Dc)[0]))
+                    self._unitInfo[unit]['tTran_list'].append(t-Tr_Update_sec)
+                    print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                    print("&&& DMDc summary Start &&&")
+                    print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                    print("A_list=\n",self._unitInfo[unit]['A_list'])
+                    print("B_list=\n",self._unitInfo[unit]['B_list'])
+                    print("C_list=\n",self._unitInfo[unit]['C_list'])
+                    print("para_list=\n",self._unitInfo[unit]['para_list'])
+                    print("eig_A_list=\n",self._unitInfo[unit]['eig_A_list'])
+                    print("tTran_list=\n",self._unitInfo[unit]['tTran_list'])
+                    print("&&&& DMDc summary End &&&&")
+                    print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+                    # print(a)
+                  else:
+                    print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                    print("&&& DMDc was not done. &&&")
+                    print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                    if abs(np.max(U1)-np.min(U1))<=1e-6 or t_idx==len(LearningSetpoints):
+                      if abs(np.max(U1)-np.min(U1))<=1e-6:
+                        print("Reason: Transient is too small. v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                      if t_idx==len(LearningSetpoints):
+                        print("Reason: System is initialized at t =",t-Tr_Update_sec)
+                    elif np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) <= 1.0: 
+                      print("Reason: New parameter is too close to existing parameter [{}].".format(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1]).argmin()))
+                      print("New parameter =", v_window[:,-1], "Para_list =",self._unitInfo[unit]['para_list'])
+                    print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+                  t_idx = t_idx+1
 
-                # print("Haoyu Debug, unit=",str(unit),", t=",time, ", curr= %.8g, V1= %.8g, delta=%.8g" %(current, V1, (V1-current)))
-
-                # Collect data for DMDc
-                t_window = np.asarray(self._unitInfo[unit]['t_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(1,-1)
-                v_window = np.asarray(self._unitInfo[unit]['v_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(m,-1)
-                x_window = np.asarray(self._unitInfo[unit]['x_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T
-                y_window = np.asarray(self._unitInfo[unit]['y_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T  
-
-                # Do the DMDc, and return ABCD matrices
-                U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
-                Do_DMDc = False
-                if abs(np.max(U1)-np.min(U1))>1e-6 and t_idx!=len(LearningSetpoints): # if there is transient, DMDc can be done: # if transient found within this window
-                  if np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) > 1.0: 
-                    # if the nearest parameter is more than 1 MW apart, do DMDc
-                    Do_DMDc = True
-
-                if Do_DMDc:  # print(U1.shape)
-                  Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
-                  # Dd_Dc = np.zeros((p,m))
-                  
-                  # append the A,B,C,D matrices to an list
-                  self._unitInfo[unit]['A_list'].append(Ad_Dc); 
-                  self._unitInfo[unit]['B_list'].append(Bd_Dc); 
-                  self._unitInfo[unit]['C_list'].append(Cd_Dc); 
-                  self._unitInfo[unit]['para_list'].append(float(U1[:,-1]+v_0)); 
-                  self._unitInfo[unit]['eig_A_list'].append(np.max(np.linalg.eig(Ad_Dc)[0]))
-                  self._unitInfo[unit]['tTran_list'].append(t-Tr_Update_sec)
-                  print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
-                  print("&&& DMDc summary Start &&&")
-                  print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
-                  print("A_list=\n",self._unitInfo[unit]['A_list'])
-                  print("B_list=\n",self._unitInfo[unit]['B_list'])
-                  print("C_list=\n",self._unitInfo[unit]['C_list'])
-                  print("para_list=\n",self._unitInfo[unit]['para_list'])
-                  print("eig_A_list=\n",self._unitInfo[unit]['eig_A_list'])
-                  print("tTran_list=\n",self._unitInfo[unit]['tTran_list'])
-                  print("&&&& DMDc summary End &&&&")
-                  print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
-                  # print(a)
-                else:
-                  print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
-                  print("&&& DMDc was not done. &&&")
-                  print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
-                  if abs(np.max(U1)-np.min(U1))<=1e-6 or t_idx==len(LearningSetpoints):
-                    if abs(np.max(U1)-np.min(U1))<=1e-6:
-                      print("Reason: Transient is too small. v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
-                    if t_idx==len(LearningSetpoints):
-                      print("Reason: System is initialized at t =",t-Tr_Update_sec)
-                  elif np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) <= 1.0: 
-                    print("Reason: New parameter is too close to existing parameter [{}].".format(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1]).argmin()))
-                    print("New parameter =", v_window[:,-1], "Para_list =",self._unitInfo[unit]['para_list'])
-                  print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
-                t_idx = t_idx+1
-
-                # Write up any violation to the errs:
-                if abs(current - V1) > self._tolerance*max(abs(current),abs(V1)):
-                  # violation
-                  errs.append({'msg': f'Reference Governor Violation',
-                              'limit': V1,
-                              'limit_type': 'lower' if (current < V1) else 'upper',
-                              'component': comp,
-                              'resource': res,
-                              'time': time,
-                              'time_index': tidx,
-                              })
+                  # Write up any violation to the errs:
+                  if abs(current - V1) > self._tolerance*max(abs(current),abs(V1)):
+                    # violation
+                    errs.append({'msg': f'Reference Governor Violation',
+                                'limit': V1,
+                                'limit_type': 'lower' if (current < V1) else 'upper',
+                                'component': comp,
+                                'resource': res,
+                                'time': time,
+                                'time_index': tidx,
+                                })
 
     if errs == []: # if no validation error:
       print(" ")
