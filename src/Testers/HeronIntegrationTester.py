@@ -33,25 +33,20 @@ if not path.isfile(config):
   )
 loc = ET.parse(config).getroot().find('FrameworkLocation')
 assert loc is not None and loc.text is not None
-RAVEN_LOC = path.abspath(path.dirname(loc.text)) #/raven
-print(" ** RAVEN_LOC=",RAVEN_LOC)
+RAVEN_LOC = path.abspath(path.dirname(loc.text)) # /raven
 
 # get RAVEN base testers
-TESTER_LOC = os.path.join(RAVEN_LOC, 'scripts', 'TestHarness', 'testers')
-print(" ** TESTER_LOC=",TESTER_LOC)
+TESTER_LOC = os.path.join(RAVEN_LOC, 'scripts', 'TestHarness', 'testers') # /testers
 sys.path.append(TESTER_LOC)
 from RavenFramework import RavenFramework as RavenTester
 sys.path.pop()
-
 
 # Get HERON location
 plugin_handler_dir = path.join(RAVEN_LOC, 'scripts')
 sys.path.append(plugin_handler_dir)
 plugin_handler = importlib.import_module('plugin_handler')
 sys.path.pop()
-HERON_LOC = plugin_handler.getPluginLocation('HERON')
-
-
+HERON_LOC = plugin_handler.getPluginLocation('HERON') # /HERON
 
 class HeronIntegration(RavenTester):
   """
