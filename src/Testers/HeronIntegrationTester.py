@@ -47,6 +47,10 @@ sys.path.append(plugin_handler_dir)
 plugin_handler = importlib.import_module('plugin_handler')
 sys.path.pop()
 HERON_LOC = plugin_handler.getPluginLocation('HERON') # /HERON
+if HERON_LOC is None:
+  raise IOError(
+      f'This test needs HERON installed as a RAVEN plugin. Please check HERON installation.'
+  )
 
 class HeronIntegration(RavenTester):
   """
