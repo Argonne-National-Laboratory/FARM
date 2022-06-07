@@ -27,8 +27,6 @@ sys.path.append(TESTER_LOC)
 from RavenFramework import RavenFramework as RavenTester
 sys.path.pop()
 
-
-
 class HeronIntegration(RavenTester):
   """
     Defines testing mechanics for HERON integration tests; that is, tests that
@@ -73,10 +71,10 @@ class HeronIntegration(RavenTester):
     plugin_handler = importlib.import_module('plugin_handler')
     sys.path.pop()
     HERON_LOC = plugin_handler.getPluginLocation('HERON') # /HERON
-    if HERON_LOC is None:
+    if HERON_LOC is None: # if HERON is not installed, skip
       self.set_skip('skipped (HERON is not installed)')
       return False
-    else:
+    else: # if HERON is available, proceed.
       self.heron_driver = os.path.join(HERON_LOC, 'heron')
     return True
 
