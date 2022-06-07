@@ -1,0 +1,6 @@
+[Tests]
+  [./HERONvalidatorFARMbeta]
+    type = HeronIntegration
+    input = heron_input_FARM_beta_BOP_SES.xml
+  [../]
+[]

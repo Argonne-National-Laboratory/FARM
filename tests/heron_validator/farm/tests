@@ -1,7 +1,0 @@
-[Tests]
-  [./HERONvalidatorFARMgammaFMU]
-    type = HeronIntegration
-    input = test_05_gamma_FMU_test_BOP_SES.xml
-  [../]
-
-[]

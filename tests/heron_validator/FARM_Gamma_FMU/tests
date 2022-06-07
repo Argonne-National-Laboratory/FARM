@@ -1,0 +1,7 @@
+[Tests]
+  [./HERONvalidatorFARMgammaFMU]
+    type = HeronIntegration
+    input = heron_input_FARM_gammaFMU_BOP_SES.xml
+    skip_if_OS = Linux, mac, SunOs
+  [../]
+[]

@@ -10,20 +10,6 @@ import xml.etree.ElementTree as ET
 import os
 from os import path
 
-# # get heron utilities
-# HERON_LOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-# print(" ** HERON_LOC=",HERON_LOC)
-# sys.path.append(HERON_LOC)
-# import _utils as hutils
-# sys.path.pop()
-
-# # get RAVEN base testers
-# RAVEN_LOC = hutils.get_raven_loc()
-# TESTER_LOC = os.path.join(RAVEN_LOC, '..', 'scripts', 'TestHarness', 'testers')
-# sys.path.append(TESTER_LOC)
-# from RavenFramework import RavenFramework as RavenTester
-# sys.path.pop()
-
 # Get RAVEN location
 config = path.abspath(path.join(path.dirname(__file__),'..','..','.ravenconfig.xml'))
 # print(" ** config_LOC=",config)
@@ -41,16 +27,7 @@ sys.path.append(TESTER_LOC)
 from RavenFramework import RavenFramework as RavenTester
 sys.path.pop()
 
-# Get HERON location
-plugin_handler_dir = path.join(RAVEN_LOC, 'scripts')
-sys.path.append(plugin_handler_dir)
-plugin_handler = importlib.import_module('plugin_handler')
-sys.path.pop()
-HERON_LOC = plugin_handler.getPluginLocation('HERON') # /HERON
-if HERON_LOC is None:
-  raise IOError(
-      f'This test needs HERON installed as a RAVEN plugin. Please check HERON installation.'
-  )
+
 
 class HeronIntegration(RavenTester):
   """
@@ -68,9 +45,40 @@ class HeronIntegration(RavenTester):
       @ Out, None
     """
     RavenTester.__init__(self, name, param)
-    # self.heron_driver = os.path.join(HERON_LOC, '..', 'heron')
-    self.heron_driver = os.path.join(HERON_LOC, 'heron')
     # NOTE: self.driver is RAVEN driver (e.g. /path/to/Driver.py)
+
+  def check_runnable(self): # modified from raven\scripts\TestHarness\testers\RavenFramework.py, 
+    """
+      Checks if this test can run.
+      @ In, None
+      @ Out, check_runnable, boolean, if True can run this test.
+    """
+
+    ## OS
+    if len(self.specs['skip_if_OS']) > 0:
+      skipOs = [x.strip().lower() for x in self.specs['skip_if_OS'].split(',')]
+      # get simple-name platform (options are Linux, Windows, Darwin, or SunOS that I've seen)
+      currentOs = platform.system().lower()
+      # replace Darwin with more expected "mac"
+      if currentOs == 'darwin':
+        currentOs = 'mac'
+      if currentOs in skipOs:
+        self.set_skip('skipped (OS is "{}")'.format(currentOs))
+        return False
+    
+    ## HERON
+    # Get HERON location
+    plugin_handler_dir = path.join(RAVEN_LOC, 'scripts')
+    sys.path.append(plugin_handler_dir)
+    plugin_handler = importlib.import_module('plugin_handler')
+    sys.path.pop()
+    HERON_LOC = plugin_handler.getPluginLocation('HERON') # /HERON
+    if HERON_LOC is None:
+      self.set_skip('skipped (HERON is not installed)')
+      return False
+    else:
+      self.heron_driver = os.path.join(HERON_LOC, 'heron')
+    return True
 
   def get_command(self):
     """
@@ -95,7 +103,7 @@ class HeronIntegration(RavenTester):
     raven_inp = os.path.abspath(os.path.join(os.path.dirname(heron_inp), 'outer.xml'))
     cmd += f' {python} {self.driver} {raven_inp}'
 
-    print(" ** cmd = ", cmd)
+    # print(" ** cmd = ", cmd)
 
     return cmd
 

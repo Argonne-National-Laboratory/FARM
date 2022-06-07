@@ -31,26 +31,20 @@
     </dispatcher>
     
     <validator>
-      <FARM_Gamma_LTI>
+      <FARM_Beta>
         <ComponentForFARM name="BOP">
-          <MatricesFile>%FARM%/tests/heron_validator/farm/ABCD_Matrices/DMDcCxCoeff_BOP_para.xml</MatricesFile>
-          <SystemProfile> 8 </SystemProfile>
-          <LearningSetpoints> 1100., 1075.</LearningSetpoints>
-          <MovingWindowDuration> 1800 </MovingWindowDuration>
+          <MatricesFile>%FARM%/tests/heron_validator/FARM_Beta/ABCD_Matrices/DMDcCxCoeff_BOP_para.xml</MatricesFile>
           <OpConstraintsUpper> 12.0E8, 53.8E5 </OpConstraintsUpper>
           <OpConstraintsLower> 10.0E8, 51.8E5 </OpConstraintsLower>
-          <InitialState> 1.50000172e+09 </InitialState>
+          <!-- <InitialState> 6.50034120e+07 </InitialState> -->
         </ComponentForFARM>
         <ComponentForFARM name="SES">
-          <MatricesFile>%FARM%/tests/heron_validator/farm/ABCD_Matrices/DMDcCxCoeff_SES_para.xml</MatricesFile>
-          <SystemProfile> 8 </SystemProfile>
-          <LearningSetpoints> 46., 15.</LearningSetpoints>
-          <MovingWindowDuration> 1800 </MovingWindowDuration>
+          <MatricesFile>%FARM%/tests/heron_validator/FARM_Beta/ABCD_Matrices/DMDcCxCoeff_SES_para.xml</MatricesFile>
           <OpConstraintsUpper> 50.0E6, 1673. </OpConstraintsUpper>
           <OpConstraintsLower> 13.5E6, 1089. </OpConstraintsLower>
           <!-- <InitialState> 5.00000000e+06 </InitialState> -->
         </ComponentForFARM>
-      </FARM_Gamma_LTI>
+      </FARM_Beta>
     </validator>
   </Case>
 
