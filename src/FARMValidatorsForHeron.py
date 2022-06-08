@@ -176,12 +176,13 @@ class FARM_Beta(Validator):
                   x_KF = x_sys
                   """ Get the r_value, original actuation value """
                   current = float(dispatch.get_activity(comp, tracker, res, times[tidx]))
-                  # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
+                  # check if storage: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
 
                   if comp.get_interaction().is_type('Storage') and tidx == 0:
                     init_level = comp.get_interaction().get_initial_level(meta)
 
-                  if str(unit) == "TES":
+                  # if storage:
+                  if comp.get_interaction().is_type('Storage'):
                     # Initial_Level = float(self._unitInfo[unit]['Initial_Level'])
                     Initial_Level = float(init_level)
                     if tidx == 0: # for the first hour, use the initial level. charging yields to negative r_value
@@ -189,7 +190,7 @@ class FARM_Beta(Validator):
                     else: # for the other hours
                       # r_value = -(current - float(dispatch.get_activity(comp, tracker, res, times[tidx-1])))/Tr_Update_hrs
                       r_value = -(current - Allowed_Level)/Tr_Update_hrs
-                  else: # when not TES,
+                  else: # when not storage,
                     r_value = current # measured in MW
 
                   """ Find the correct profile according to r_value"""
@@ -237,14 +238,14 @@ class FARM_Beta(Validator):
 
                   # Convert to V1:
 
-                  # if str(unit) == "TES":
+                  # if storage
                   if comp.get_interaction().is_type('Storage'):
                     if tidx == 0: # for the first hour, use the initial level
                       Allowed_Level = Initial_Level - v_value*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
                     else: # for the other hours
                       Allowed_Level = Allowed_Level - v_value*Tr_Update_hrs
                     V1 = Allowed_Level
-                  else: # when not TES,
+                  else: # when not storage,
                     V1 = v_value
 
                   # print("Haoyu Debug, unit=",str(unit),", t=",time, ", curr= %.8g, V1= %.8g, delta=%.8g" %(current, V1, (V1-current)))
@@ -666,7 +667,7 @@ class FARM_Gamma_LTI(Validator):
                   x_KF = x_sys_internal
                   """ Get the r_value, original actuation value """
                   current = float(dispatch.get_activity(comp, tracker, res, times[tidx]))
-                  # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
+                  # check if storage: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
 
                   if comp.get_interaction().is_type('Storage') and tidx == 0:
                     init_level = comp.get_interaction().get_initial_level(meta)
@@ -679,7 +680,7 @@ class FARM_Gamma_LTI(Validator):
                     else: # for the other hours
                       # r_value = -(current - float(dispatch.get_activity(comp, tracker, res, times[tidx-1])))/Tr_Update_hrs
                       r_value = -(current - Allowed_Level)/Tr_Update_hrs
-                  else: # when not TES,
+                  else: # when not storage,
                     r_value = current # measured in MW
 
                   """ Find the correct profile according to r_value"""
@@ -744,7 +745,7 @@ class FARM_Gamma_LTI(Validator):
 
                   # Convert to V1:
 
-                  # if str(unit) == "TES":
+                  # if storage
                   if comp.get_interaction().is_type('Storage'):
                     if tidx == 0: # for the first hour, use the initial level
                       Allowed_Level = Initial_Level - v_RG*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
@@ -1268,7 +1269,7 @@ class FARM_Gamma_FMU(Validator):
                   # print("x_0 reshape=",x_0.reshape(n,))
                   """ Get the r_value, original actuation value """
                   current = float(dispatch.get_activity(comp, tracker, res, times[tidx]))
-                  # check if TES: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
+                  # check if storage: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
 
                   if comp.get_interaction().is_type('Storage') and tidx == 0:
                     init_level = comp.get_interaction().get_initial_level(meta)
@@ -1281,7 +1282,7 @@ class FARM_Gamma_FMU(Validator):
                     else: # for the other hours
                       # r_value = -(current - float(dispatch.get_activity(comp, tracker, res, times[tidx-1])))/Tr_Update_hrs
                       r_value = -(current - Allowed_Level)/Tr_Update_hrs
-                  else: # when not TES,
+                  else: # when not storage,
                     r_value = current # measured in MW
 
                   """ Find the correct profile according to r_value"""
@@ -1349,7 +1350,7 @@ class FARM_Gamma_FMU(Validator):
 
                   # Convert to V1:
 
-                  # if str(unit) == "TES":
+                  # if storage
                   if comp.get_interaction().is_type('Storage'):
                     if tidx == 0: # for the first hour, use the initial level
                       Allowed_Level = Initial_Level - v_RG*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
