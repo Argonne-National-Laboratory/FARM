@@ -1,3 +1,4 @@
+![FARM_LOGO_rgb_black](https://user-images.githubusercontent.com/63424217/178042559-7f4c1b33-cd0f-4bd4-9a31-22e6f0d80dd8.png)
 # FARM
 Feasible Actuator Range Modifier (FARM) Plugin for RAVEN
 
