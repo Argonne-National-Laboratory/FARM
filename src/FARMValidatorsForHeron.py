@@ -1443,6 +1443,611 @@ class FARM_Gamma_FMU(Validator):
 
     return errs
 
+class FARM_Delta_FMU(Validator):
+  """
+    A FARM SISO Validator for dispatch decisions.(Dirty Implementation)
+    Accepts parameterized A,B,C,D matrices from external XML file and use the first set within constraints 
+    as physics model, and validate
+    the dispatch power (BOP, unit=MW)
+
+    Haoyu Wang, ANL-NSE, March 28, 2022
+  """
+  # ---------------------------------------------
+  # INITIALIZATION
+  @classmethod
+  def get_input_specs(cls):
+    """
+      Set acceptable input specifications.
+      @ In, None
+      @ Out, specs, InputData, specs
+    """
+    specs = Validator.get_input_specs()
+    specs.name = 'FARM_Delta_FMU'
+    specs.description = r"""Feasible Actuator Range Modifier, which uses a single-input-single-output
+        reference governor validator to adjust the power setpoints issued to the components at the
+        beginning of each dispatch interval (usually an hour), to ensure the the operational constraints
+        were not violated during the following dispatch interval. This version uses a Functional Mock-up 
+        Unit (FMU) as a downstream high-fidelity model."""
+
+    component = InputData.parameterInputFactory('ComponentForFARM', ordered=False, baseNode=None,
+        descr=r"""The component whose power setpoint will be adjusted by FARM. The user need
+        to provide the statespace matrices and operational constraints concerning this component,
+        and optionally provide the initial states.""")
+    component.addParam('name',param_type=InputTypes.StringType, required=True,
+        descr=r"""The name by which this component should be referred within HERON. It should match
+        the component's name in \xmlNode{Components}.""")
+
+    component.addSub(InputData.parameterInputFactory('FMUFile',contentType=InputTypes.StringType,
+        descr=r"""The path to the FMU file of this component. Either absolute path
+        or path relative to HERON root (starts with %HERON%/)will work. The matrices file can be generated from
+        RAVEN DMDc or other sources."""))
+    component.addSub(InputData.parameterInputFactory('FMUSimulationStep',contentType=InputTypes.FloatType,
+        descr=r"""The step length of FMU simulation. It should be a floating number or an integer."""))
+    component.addSub(InputData.parameterInputFactory('InputVarNames',contentType=InputTypes.InterpretedListType,
+        descr=r"""The names of FMU input variables. It should be a list of strings separated by comma."""))
+    component.addSub(InputData.parameterInputFactory('StateVarNames',contentType=InputTypes.InterpretedListType,
+        descr=r"""The names of FMU state variables. It should be a list of strings separated by comma."""))
+    component.addSub(InputData.parameterInputFactory('OutputVarNames',contentType=InputTypes.InterpretedListType,
+        descr=r"""The names of FMU output variables. It should be a list of strings separated by comma."""))
+    component.addSub(InputData.parameterInputFactory('LearningSetpoints',contentType=InputTypes.InterpretedListType,
+        descr=r"""The learning setpoints are used to find the nominal value and first sets of ABCD matrices. 
+        It should be a list of two or more floating numbers or integers separated by comma."""))
+    component.addSub(InputData.parameterInputFactory('MovingWindowDuration',contentType=InputTypes.IntegerType,
+        descr=r"""The moving window duration for DMDc, with the unit of seconds. It should be an integer."""))
+    component.addSub(InputData.parameterInputFactory('OpConstraintsUpper',contentType=InputTypes.InterpretedListType,
+        descr=r"""The upper bounds for the output variables of this component. It should be a list of
+        floating numbers or integers separated by comma."""))
+    component.addSub(InputData.parameterInputFactory('OpConstraintsLower',contentType=InputTypes.InterpretedListType,
+        descr=r"""The lower bounds for the output variables of this component. It should be a list of
+        floating numbers or integers separated by comma."""))
+
+    specs.addSub(component)
+
+    return specs
+
+  def __init__(self):
+    """
+      Constructor.
+      @ In, None
+      @ Out, None
+    """
+    self.name = 'BaseValidator'
+    self._tolerance = 1.003e-6
+
+  def read_input(self, inputs):
+    """
+      Loads settings based on provided inputs
+      @ In, inputs, InputData.InputSpecs, input specifications
+      @ Out, None
+    """
+    self._unitInfo = {}
+    for component in inputs.subparts:
+      name = component.parameterValues['name']
+
+      for farmEntry in component.subparts:
+        if farmEntry.getName() == "FMUFile":
+          fmuFile = farmEntry.value
+          if fmuFile.startswith('%HERON%'):
+            # magic word for "relative to HERON root"
+            heron_path = get_heron_loc()
+            fmuFile = os.path.abspath(fmuFile.replace('%HERON%', heron_path))
+          elif fmuFile.startswith('%FARM%'):
+            # magic word for "relative to HERON root"
+            farm_path = get_farm_loc()
+            fmuFile = os.path.abspath(fmuFile.replace('%FARM%', farm_path))
+        if farmEntry.getName() == "FMUSimulationStep":
+          FMUSimulationStep = farmEntry.value
+        if farmEntry.getName() == "InputVarNames":
+          InputVarNames = farmEntry.value
+        if farmEntry.getName() == "StateVarNames":
+          StateVarNames = farmEntry.value
+        if farmEntry.getName() == "OutputVarNames":
+          OutputVarNames = farmEntry.value
+        if farmEntry.getName() == "LearningSetpoints":
+          LearningSetpoints = farmEntry.value
+          if len(LearningSetpoints) < 2:
+            sys.exit('\nERROR: <LearningSetpoints> XML node needs to contain 2 or more floating or integer numbers.\n')   
+          elif min(LearningSetpoints)==max(LearningSetpoints):
+            exitMessage = """ERROR:  No transient found in <LearningSetpoints>. \n\tPlease modify the values in <LearningSetpoints>.\n"""
+            sys.exit(exitMessage)        
+        if farmEntry.getName() == "MovingWindowDuration":
+          MovingWindowDuration = farmEntry.value
+        if farmEntry.getName() == "OpConstraintsUpper":
+          UpperBound = farmEntry.value
+        if farmEntry.getName() == "OpConstraintsLower":
+          LowerBound = farmEntry.value
+
+      self._unitInfo.update(
+        {name:{
+          'FMUFile':fmuFile,
+          'FMUSimulationStep':FMUSimulationStep,
+          'InputVarNames':InputVarNames,
+          'StateVarNames':StateVarNames,
+          'OutputVarNames':OutputVarNames,
+          'LearningSetpoints':LearningSetpoints,
+          'MovingWindowDuration':MovingWindowDuration,
+          'Targets_Max':UpperBound,
+          'Targets_Min':LowerBound,
+          't_hist':[],
+          'v_hist':[],
+          'x_hist':[],
+          'y_hist':[],
+          'A_list':[],
+          'B_list':[],
+          'C_list':[],
+          'eig_A_list':[],
+          'para_list':[],
+          'tTran_list':[]}})
+    print('\n',self._unitInfo,'\n')
+
+  # ---------------------------------------------
+  # API
+  def validate(self, components, dispatch, times, meta):
+    """
+      Method to validate a dispatch activity.
+      @ In, components, list, HERON components whose cashflows should be evaluated
+      @ In, activity, DispatchState instance, activity by component/resources/time
+      @ In, times, np.array(float), time values to evaluate; may be length 1 or longer
+      @ In, meta, dict, extra information pertaining to validation
+      @ Out, errs, list, information about validation failures
+    """
+    # errs will be returned to dispatcher. errs contains all the validation errors calculated in below
+    errs = [] # TODO best format for this?
+
+    """ get time interval"""
+    Tr_Update_hrs = float(times[1]-times[0])
+    Tr_Update_sec = Tr_Update_hrs*3600.
+
+    # loop through the <Component> items in HERON
+    for comp, info in dispatch._resources.items():
+      # e.g. comp= <HERON Component "SES""> <HERON Component "SES"">
+      # loop through the items defined in the __init__ function
+      for unit in self._unitInfo:
+        # e.g. CompInfo, unit= SES
+        # Identify the profile as defined in the __init__ function
+        if str(unit) not in str(comp):
+          # If the "unit" and "comp" do not match, go to the next "unit" in loop
+          continue
+        else: # when the str(unit) is in the str(comp) (e.g. "SES" in "<HERON Component "SES"">")
+          """ 1. Constraints information, and Moving window width """
+          # Constraints
+          y_min = np.asarray(self._unitInfo[unit]['Targets_Min'])
+          y_max = np.asarray(self._unitInfo[unit]['Targets_Max'])
+
+          # The width of moving window (seconds, centered at transient edge, for moving window DMDc)
+          Moving_Window_Width = self._unitInfo[unit]['MovingWindowDuration']; #Tr_Update
+
+          # empty the v_hist and y_hist
+          self._unitInfo[unit]['t_hist']=[]; self._unitInfo[unit]['v_hist']=[]
+          self._unitInfo[unit]['x_hist']=[]; self._unitInfo[unit]['y_hist']=[]
+          # empty the A_list, B_list, C_list, eig_A_list, para_list, tTran_list
+          self._unitInfo[unit]['A_list']=[]; self._unitInfo[unit]['B_list']=[]; self._unitInfo[unit]['C_list']=[]
+          self._unitInfo[unit]['eig_A_list']=[]; self._unitInfo[unit]['para_list']=[]; self._unitInfo[unit]['tTran_list']=[]
+           
+          
+          """ 2. Read FMU file to specify the physical model"""
+          fmu_filename = self._unitInfo[unit]['FMUFile']
+          Tss = self._unitInfo[unit]['FMUSimulationStep']
+          inputVarNames = self._unitInfo[unit]['InputVarNames']
+          stateVarNames = self._unitInfo[unit]['StateVarNames']
+          outputVarNames = self._unitInfo[unit]['OutputVarNames']
+
+          # Dimensions of input (m), states (n) and output (p)
+          m=len(inputVarNames); n=len(stateVarNames); p=len(outputVarNames)
+
+          # read the model description
+          model_description = read_model_description(fmu_filename)
+          
+          # collect the value references
+          vrs = {}
+          for variable in model_description.modelVariables:
+              vrs[variable.name] = variable.valueReference
+          
+          # get the value references for the variables we want to get/set
+          # Input Power Setpoint (W)
+          vr_input = [vrs[item] for item in inputVarNames]
+          # State variables and dimension
+          vr_state = [vrs[item] for item in stateVarNames]
+          # Outputs: Power Generated (W), Turbine Pressure (Pa)
+          vr_output = [vrs[item] for item in outputVarNames]
+          
+          # extract the FMU
+          unzipdir = extract(fmu_filename)
+          fmu = FMU2Slave(guid=model_description.guid,
+                          unzipDirectory=unzipdir,
+                          modelIdentifier=model_description.coSimulation.modelIdentifier,
+                          instanceName='instance1')
+          
+          # Initialize FMU
+          T_delaystart = 0.
+          fmu.instantiate()
+          fmu.setupExperiment(startTime=T_delaystart)
+          fmu.enterInitializationMode()
+          fmu.exitInitializationMode()
+            
+
+          """ 3 & 4. simulate the 1st setpoint, to get the steady state output """
+          LearningSetpoints = self._unitInfo[unit]['LearningSetpoints']
+          # Initialize linear model
+          # x_sys_internal = np.zeros(n).reshape(n,-1) # x_sys type == <class 'numpy.ndarray'>
+          t = -Tr_Update_sec*len(LearningSetpoints) # t = -7200 s
+          t_idx = 0
+          
+          # Do the step-by-step simulation, from beginning to the first transient
+          while t < -Tr_Update_sec*(len(LearningSetpoints)-1): # only the steady state value
+            # Find the current r value
+            
+            r_value = float(LearningSetpoints[t_idx])
+            # print("t_idx=", t_idx, "t=", t, "r=", r_value)
+            # print(type(r_value))
+            
+            # No reference governor for the first setpoint value yet
+            v_RG = r_value
+            # print("v_RG:", type(v_RG))
+            
+            # fetch y
+            y_fetch = np.asarray(fmu.getReal(vr_output))
+
+            # fetch v and x
+            v_fetch = np.asarray(v_RG).reshape(m,)
+            x_fetch = np.asarray(fmu.getReal(vr_state))
+
+            # set the input. The input / state / output in FMU are real-world values
+            fmu.setReal(vr_input, [v_RG])
+            # perform one step
+            fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
+
+            self._unitInfo[unit]['t_hist'].append(t)  # input v
+            self._unitInfo[unit]['v_hist'].append(v_fetch)  # input v
+            self._unitInfo[unit]['x_hist'].append(x_fetch)  # state x
+            self._unitInfo[unit]['y_hist'].append(y_fetch)  # output y
+
+            # time increment
+            t = t + Tss
+          # fetch the steady-state y variables
+          v_0 = v_fetch.reshape(m,-1)
+          x_0 = x_fetch.reshape(n,-1)
+          y_0 = y_fetch.reshape(p,-1)
+
+          t_idx += 1
+          
+          # check if steady-state y is within the [ymin, ymax]
+          for i in range(len(y_0)):
+            if y_0[i][0]>y_max[i]:
+              exitMessage = """\n\tERROR:  Steady state output y_STEADY[{:d}] is {:.2f} HIGHER than y upper constraints. \n
+              \tFYI:      Unit = {};
+              \tFYI:  y_STEADY = {};
+              \tFYI: y_maximum = {};
+              \tFYI: y_minimum = {}.\n
+              \tPlease modify the steady state setpoint in <LearningSetpoints>, Item #0.\n""".format(i, 
+              y_0[i][0]-y_max[i], str(unit), 
+              np.array2string(y_0.flatten(), formatter={'float_kind':lambda x: "%.4e" % x}),
+              np.array2string(y_max, formatter={'float_kind':lambda x: "%.4e" % x}),
+              np.array2string(y_min, formatter={'float_kind':lambda x: "%.4e" % x}),
+              )
+              print(exitMessage)
+              sys.exit(exitMessage)
+            elif y_0[i][0]<y_min[i]:
+              exitMessage = """\n\tERROR:  Steady state output y_STEADY[{:d}] is {:.2f} LOWER than y lower constraints. \n
+              \tFYI:      Unit = {};
+              \tFYI: y_maximum = {};
+              \tFYI: y_minimum = {};
+              \tFYI:  y_STEADY = {}.\n
+              \tPlease modify the steady state setpoint in <LearningSetpoints>, Item #0.\n""".format(i, 
+              y_min[i]-y_0[i][0], str(unit), 
+              np.array2string(y_max, formatter={'float_kind':lambda x: "%.4e" % x}),
+              np.array2string(y_min, formatter={'float_kind':lambda x: "%.4e" % x}),
+              np.array2string(y_0.flatten(), formatter={'float_kind':lambda x: "%.4e" % x}),
+              )
+              print(exitMessage)
+              sys.exit(exitMessage)
+
+
+          print("\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+          print("^^^ Steady State Summary Start ^^^")
+          print("Unit =", str(unit), ", t =", t - Tss, "\nv_0 =\n", float(v_0), "\nx_0 = \n",x_0,"\ny_0 = \n",y_0)
+          print("^^^^ Steady State Summary End ^^^^")
+          print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
+
+          # print("v_hist of ",str(unit), "=\n",len(self._unitInfo[unit]['v_hist']),self._unitInfo[unit]['v_hist'])
+          # print(" y_hist of ",str(unit), "=\n",len(self._unitInfo[unit]['y_hist']),self._unitInfo[unit]['y_hist'])
+
+          """ 5. Simulate the using the second r_ext value, to get the first guess of ABCD matrices """
+          window = int(Moving_Window_Width/Tss) # window width for DMDc
+          
+          while t_idx < len(LearningSetpoints):
+
+            # Do the step-by-step simulation, from beginning to the first transient
+            while t < -Tr_Update_sec*(len(LearningSetpoints)-1-t_idx): # only the steady state value
+              # Find the current r value
+              
+              r_value = float(LearningSetpoints[t_idx])
+              # print("t_idx=", t_idx, "t=", t, "r=", r_value)
+              # print(type(r_value))
+              
+              # No reference governor for the first setpoint value yet
+              v_RG = r_value
+              
+              # fetch y
+              y_fetch = np.asarray(fmu.getReal(vr_output))
+
+              # fetch v and x
+              v_fetch = np.asarray(v_RG).reshape(m,)
+              x_fetch = np.asarray(fmu.getReal(vr_state))
+
+              # set the input. The input / state / output in FMU are real-world values
+              fmu.setReal(vr_input, [v_RG])
+              # perform one step
+              fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
+
+              self._unitInfo[unit]['t_hist'].append(t)  # input v
+              self._unitInfo[unit]['v_hist'].append(v_fetch)  # input v
+              self._unitInfo[unit]['x_hist'].append(x_fetch)  # state x
+              self._unitInfo[unit]['y_hist'].append(y_fetch)  # output y
+
+              # time increment
+              t = t + Tss
+
+            # Collect data for DMDc
+            t_window = np.asarray(self._unitInfo[unit]['t_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(1,-1)
+            v_window = np.asarray(self._unitInfo[unit]['v_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(m,-1)
+            x_window = np.asarray(self._unitInfo[unit]['x_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T
+            y_window = np.asarray(self._unitInfo[unit]['y_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T  
+            # print(t_window.shape) # (1, 180)
+            # print(v_window.shape) # (1, 180)
+            # print(x_window.shape) # (1, 180)
+            # print(y_window.shape) # (2, 180)
+
+            # Do the DMDc, and return ABCD matrices
+            U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
+            Do_DMDc = False
+            if abs(np.max(U1)-np.min(U1))>1e-6: # if transient found within this window
+              if len(self._unitInfo[unit]['para_list'])==0: 
+                # if para_list is empty, do DMDc
+                Do_DMDc = True
+              elif np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) > 1.0: 
+                # if the nearest parameter is more than 1 MW apart, do DMDc
+                Do_DMDc = True
+
+            if Do_DMDc:
+              Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
+              # Dd_Dc = np.zeros((p,m))
+              # append the A,B,C,D matrices to an list
+              self._unitInfo[unit]['A_list'].append(Ad_Dc); 
+              self._unitInfo[unit]['B_list'].append(Bd_Dc); 
+              self._unitInfo[unit]['C_list'].append(Cd_Dc); 
+              self._unitInfo[unit]['para_list'].append(float(U1[:,-1]+v_0)); 
+              self._unitInfo[unit]['eig_A_list'].append(np.max(np.linalg.eig(Ad_Dc)[0]))
+              self._unitInfo[unit]['tTran_list'].append(t-Tr_Update_sec)
+              print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+              print("&&& DMDc summary Start &&&")
+              print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+              print("A_list=\n",self._unitInfo[unit]['A_list'])
+              print("B_list=\n",self._unitInfo[unit]['B_list'])
+              print("C_list=\n",self._unitInfo[unit]['C_list'])
+              print("para_list=\n",self._unitInfo[unit]['para_list'])
+              print("eig_A_list=\n",self._unitInfo[unit]['eig_A_list'])
+              print("tTran_list=\n",self._unitInfo[unit]['tTran_list'])
+              print("&&&& DMDc summary End &&&&")
+              print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+              # print(a)
+            else:
+              print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+              print("&&& DMDc was not done. &&&")
+              print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+              if abs(np.max(U1)-np.min(U1))<=1e-6:
+                print("Reason: Transient is too small. v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+              elif np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) <= 1.0: 
+                print("Reason: New parameter is too close to existing parameter [{}].".format(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1]).argmin()))
+                print("New parameter =", v_window[:,-1], "Para_list =",self._unitInfo[unit]['para_list'])
+              print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+            t_idx += 1
+          
+          """ 6. Simulate from the third r_ext value using RG, and update the ABCD matrices as it goes """
+          # RG-related stuff:
+          # MOAS steps Limit 
+          g = int(Tr_Update_sec/Tss)+1 # numbers of steps to look forward, , type = <class 'int'>
+          # Calculate s for Maximal Output Admissible Set (MOAS)
+          s = [] # type == <class 'list'>
+          for i in range(0,p):
+            s.append(abs(y_max[i] - y_0[i]))
+            s.append(abs(y_0[i] - y_min[i]))
+          s = np.asarray(s).tolist()
+          # print(s)
+
+          for tracker in comp.get_tracking_vars():
+            # loop through the resources in info (only one resource here - electricity)
+            for res in info:
+              if str(res) == "electricity":
+                # Initialize FMU
+                fmu.instantiate()
+                fmu.setupExperiment(startTime=T_delaystart)
+                fmu.enterInitializationMode()
+                fmu.exitInitializationMode()
+                
+                # loop through the time index (tidx) and time in "times"
+                # t_idx = t_idx+1
+                for tidx, time in enumerate(times):
+                  # Copy the system state variable
+                  x_KF = np.asarray(fmu.getReal(vr_state))-x_0.reshape(n,)
+                  # print("time=",time,", x_KF=",x_KF)
+                  # print("x_0 reshape=",x_0.reshape(n,))
+                  """ Get the r_value, original actuation value """
+                  current = float(dispatch.get_activity(comp, tracker, res, times[tidx]))
+                  # check if storage: power = (curr. MWh energy - prev. MWh energy)/interval Hrs
+
+                  if comp.get_interaction().is_type('Storage') and tidx == 0:
+                    init_level = comp.get_interaction().get_initial_level(meta)
+
+                  if comp.get_interaction().is_type('Storage'):
+                    # Initial_Level = float(self._unitInfo[unit]['Initial_Level'])
+                    Initial_Level = float(init_level)
+                    if tidx == 0: # for the first hour, use the initial level. charging yields to negative r_value
+                      r_value = -(current - Initial_Level)/Tr_Update_hrs
+                    else: # for the other hours
+                      # r_value = -(current - float(dispatch.get_activity(comp, tracker, res, times[tidx-1])))/Tr_Update_hrs
+                      r_value = -(current - Allowed_Level)/Tr_Update_hrs
+                  else: # when not storage,
+                    r_value = current # measured in MW
+
+                  """ Find the correct profile according to r_value"""
+                  profile_id = (np.abs(np.asarray(self._unitInfo[unit]['para_list']) - r_value)).argmin()
+                  # print("t_idx=",t_idx, "t=",t)
+
+                  # Retrive the correct A, B, C matrices
+                  A_d = self._unitInfo[unit]['A_list'][profile_id]
+                  B_d = self._unitInfo[unit]['B_list'][profile_id]
+                  C_d = self._unitInfo[unit]['C_list'][profile_id]
+                  D_d = np.zeros((p,m)) # all zero D matrix
+                  
+                  # Build the s, H and h for MOAS
+                  
+                  H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g)  # H and h, type = <class 'numpy.ndarray'>
+              
+                  # first v_RG: consider the step "0" - step "g"
+                  v_RG = fun_RG_SISO(0, x_KF, r_value-v_0, H_DMDc, h_DMDc, p) # v_RG: type == <class 'numpy.ndarray'>
+
+                  # find the profile with max eigenvalue of A
+                  max_eigA_id = np.asarray(self._unitInfo[unit]['eig_A_list']).argmax()
+                  A_m = self._unitInfo[unit]['A_list'][max_eigA_id]
+                  B_m = self._unitInfo[unit]['B_list'][max_eigA_id]
+                  C_m = self._unitInfo[unit]['C_list'][max_eigA_id]
+                  D_m = np.zeros((p,m)) # all zero D matrix
+
+                  """ 2nd adjustment """
+                  # MOAS for the steps "g+1" - step "2g"
+                  Hm, hm = fun_MOAS_noinf(A_m, B_m, C_m, D_m, s, g)
+                  # Calculate the max/min for v, ensuring the hm-Hxm*x(g+1) always positive for the next g steps.
+                  v_max, v_min = fun_2nd_gstep_calc(x_KF, Hm, hm, A_m, B_m, g)
+
+                  if v_RG < v_min:
+                    v_RG = v_min
+                  elif v_RG > v_max:
+                    v_RG = v_max
+
+                  # # Pretend there is no FARM intervention
+                  # v_RG = np.asarray(r_value-r_0).flatten()
+
+                  v_RG = float(v_RG)+float(v_0) # absolute value of electrical power (MW)
+                  print("\n**************************", "\n**** RG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nr = ", r_value, "\nProfile Selected = ", profile_id, "\nv_RG = ", v_RG, "\n***** RG summary End *****","\n**************************\n")
+              
+                  # Update x_sys_internal, and keep record in v_hist and yp_hist within this hour
+                  for i in range(int(Tr_Update_sec/Tss)):
+                    # fetch y
+                    y_fetch = np.asarray(fmu.getReal(vr_output))
+
+                    # fetch v and x
+                    v_fetch = np.asarray(v_RG).reshape(m,)
+                    x_fetch = np.asarray(fmu.getReal(vr_state))
+                    
+                    # set the input. The input / state / output in FMU are real-world values
+                    fmu.setReal(vr_input, [v_RG])
+                    # perform one step
+                    fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
+
+                    self._unitInfo[unit]['t_hist'].append(t)  # input v
+                    self._unitInfo[unit]['v_hist'].append(v_fetch)  # input v
+                    self._unitInfo[unit]['x_hist'].append(x_fetch)  # state x
+                    self._unitInfo[unit]['y_hist'].append(y_fetch)  # output y
+
+                    # time increment
+                    t = t + Tss
+
+                  # Convert to V1:
+
+                  # if storage
+                  if comp.get_interaction().is_type('Storage'):
+                    if tidx == 0: # for the first hour, use the initial level
+                      Allowed_Level = Initial_Level - v_RG*Tr_Update_hrs # Allowed_Level: predicted level due to v_value
+                    else: # for the other hours
+                      Allowed_Level = Allowed_Level - v_RG*Tr_Update_hrs
+                    V1 = Allowed_Level
+                  else: # when not storage,
+                    V1 = v_RG
+
+                  # print("Haoyu Debug, unit=",str(unit),", t=",time, ", curr= %.8g, V1= %.8g, delta=%.8g" %(current, V1, (V1-current)))
+
+                  # Collect data for DMDc
+                  t_window = np.asarray(self._unitInfo[unit]['t_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(1,-1)
+                  v_window = np.asarray(self._unitInfo[unit]['v_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(m,-1)
+                  x_window = np.asarray(self._unitInfo[unit]['x_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T
+                  y_window = np.asarray(self._unitInfo[unit]['y_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T  
+
+                  # Do the DMDc, and return ABCD matrices
+                  U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
+                  Do_DMDc = False
+                  if abs(np.max(U1)-np.min(U1))>1e-6 and t_idx!=len(LearningSetpoints): # if there is transient, DMDc can be done: # if transient found within this window
+                    if np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) > 1.0: 
+                      # if the nearest parameter is more than 1 MW apart, do DMDc
+                      Do_DMDc = True
+
+                  if Do_DMDc:  # print(U1.shape)
+                    Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
+                    # Dd_Dc = np.zeros((p,m))
+                    
+                    # append the A,B,C,D matrices to an list
+                    self._unitInfo[unit]['A_list'].append(Ad_Dc); 
+                    self._unitInfo[unit]['B_list'].append(Bd_Dc); 
+                    self._unitInfo[unit]['C_list'].append(Cd_Dc); 
+                    self._unitInfo[unit]['para_list'].append(float(U1[:,-1]+v_0)); 
+                    self._unitInfo[unit]['eig_A_list'].append(np.max(np.linalg.eig(Ad_Dc)[0]))
+                    self._unitInfo[unit]['tTran_list'].append(t-Tr_Update_sec)
+                    print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                    print("&&& DMDc summary Start &&&")
+                    print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                    print("A_list=\n",self._unitInfo[unit]['A_list'])
+                    print("B_list=\n",self._unitInfo[unit]['B_list'])
+                    print("C_list=\n",self._unitInfo[unit]['C_list'])
+                    print("para_list=\n",self._unitInfo[unit]['para_list'])
+                    print("eig_A_list=\n",self._unitInfo[unit]['eig_A_list'])
+                    print("tTran_list=\n",self._unitInfo[unit]['tTran_list'])
+                    print("&&&& DMDc summary End &&&&")
+                    print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+                    # print(a)
+                  else:
+                    print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                    print("&&& DMDc was not done. &&&")
+                    print("Unit =", str(unit), ", t = ", t-Tr_Update_sec, ", v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                    if abs(np.max(U1)-np.min(U1))<=1e-6 or t_idx==len(LearningSetpoints):
+                      if abs(np.max(U1)-np.min(U1))<=1e-6:
+                        print("Reason: Transient is too small. v_window[0] =", v_window[0][0], ", v_window[-1] =", v_window[0][-1])
+                      if t_idx==len(LearningSetpoints):
+                        print("Reason: System is initialized at t =",t-Tr_Update_sec)
+                    elif np.min(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1])) <= 1.0: 
+                      print("Reason: New parameter is too close to existing parameter [{}].".format(np.abs(np.asarray(self._unitInfo[unit]['para_list']) - v_window[:,-1]).argmin()))
+                      print("New parameter =", v_window[:,-1], "Para_list =",self._unitInfo[unit]['para_list'])
+                    print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+                  t_idx = t_idx+1
+
+                  # Write up any violation to the errs:
+                  if abs(current - V1) > self._tolerance*max(abs(current),abs(V1)):
+                    # violation
+                    errs.append({'msg': f'Reference Governor Violation',
+                                'limit': V1,
+                                'limit_type': 'lower' if (current < V1) else 'upper',
+                                'component': comp,
+                                'resource': res,
+                                'time': time,
+                                'time_index': tidx,
+                                })
+
+    if errs == []: # if no validation error:
+      print(" ")
+      print("*********************************************************************")
+      print("*** Haoyu Debug, Validation Success, Print for offline processing ***")
+      print("*********************************************************************")
+      print(" ")
+
+      for unit in self._unitInfo:
+        t_hist = self._unitInfo[unit]['t_hist']
+        v_hist = np.array(self._unitInfo[unit]['v_hist']).T
+        y_hist = np.array(self._unitInfo[unit]['y_hist']).T
+        # print(str(unit),y_hist)
+        for i in range(len(t_hist)):
+          print(str(unit), ",t,",t_hist[i],",vp,",v_hist[0][i],",y1,",y_hist[0][i], ",y1min,",self._unitInfo[unit]['Targets_Min'][0],",y1max,",self._unitInfo[unit]['Targets_Max'][0],",y2,",y_hist[1][i], ",y2min,",self._unitInfo[unit]['Targets_Min'][1],",y2max,",self._unitInfo[unit]['Targets_Max'][1])
+
+    return errs
+
 
 
 
