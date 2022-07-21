@@ -612,7 +612,7 @@ class FARM_Gamma_LTI(Validator):
                 Do_DMDc = True
 
             if Do_DMDc:
-              Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
+              Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1)
               # Dd_Dc = np.zeros((p,m))
               # append the A,B,C,D matrices to an list
               self._unitInfo[unit]['A_list'].append(Ad_Dc); 
@@ -780,7 +780,7 @@ class FARM_Gamma_LTI(Validator):
                       Do_DMDc = True
 
                   if Do_DMDc:  # print(U1.shape)
-                    Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
+                    Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1)
                     # Dd_Dc = np.zeros((p,m))
                     
                     # append the A,B,C,D matrices to an list
@@ -1213,7 +1213,7 @@ class FARM_Gamma_FMU(Validator):
                 Do_DMDc = True
 
             if Do_DMDc:
-              Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
+              Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1)
               # Dd_Dc = np.zeros((p,m))
               # append the A,B,C,D matrices to an list
               self._unitInfo[unit]['A_list'].append(Ad_Dc); 
@@ -1385,7 +1385,7 @@ class FARM_Gamma_FMU(Validator):
                       Do_DMDc = True
 
                   if Do_DMDc:  # print(U1.shape)
-                    Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1, 1e-6)
+                    Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1)
                     # Dd_Dc = np.zeros((p,m))
                     
                     # append the A,B,C,D matrices to an list
@@ -1970,9 +1970,9 @@ class FARM_Delta_FMU(Validator):
 
         # Calculate the H and h in MOAS
         if tidx == 0: # The 1st production set-point: use regular MOAS
-          H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g, setpoints_shift_step)  # H and h, type = <class 'numpy.ndarray'>
+          H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g, m*setpoints_shift_step)  # H and h, type = <class 'numpy.ndarray'>
         else: # from the 2nd production set-point: use shifted MOAS
-          H_DMDc, h_DMDc = fun_MOAS_MIMO_Setpoint_Shift(A_d, B_d, C_d, D_d, s, g, copy.deepcopy(v_CG), setpoints_shift_step, setpoints_shift_step)
+          H_DMDc, h_DMDc = fun_MOAS_MIMO_Setpoint_Shift(A_d, B_d, C_d, D_d, s, g, copy.deepcopy(v_CG), setpoints_shift_step, m*setpoints_shift_step)
           # print(a)
         # print(h_DMDc.shape) # (2p*(g+1), 1)
         # print(r_value-v_0) # ndarray,(m, 1)
@@ -1980,7 +1980,7 @@ class FARM_Delta_FMU(Validator):
         
         # calculate v_RG using command governor
         # print("Tentative r_value =\n",r_value)    
-        v_CG = fun_CG_MIMO(x_fetch.reshape(n,-1)-x_0, r.reshape(m,-1)-v_0, H_DMDc, h_DMDc,2*p*m*setpoints_shift_step) # 
+        v_CG = fun_CG_MIMO(x_fetch.reshape(n,-1)-x_0, r.reshape(m,-1)-v_0, H_DMDc, h_DMDc,2*p*m*setpoints_shift_step, True) # 
 
         v_adj = (v_CG + v_0).reshape(m,)
         print("\n**************************", "\n**** CG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nProfile Selected = ", profile_id, "\nr = ", r, "\nv = ", v_adj, "\n***** RG summary End *****","\n**************************\n")
@@ -2144,12 +2144,15 @@ class FARM_Delta_FMU(Validator):
       for unit in self._unitInfo:
         t_hist = self._unitInfo[unit]['t_hist']
         v_hist = np.array(self._unitInfo[unit]['v_hist']).T
+        x_hist = np.array(self._unitInfo[unit]['x_hist']).T
         y_hist = np.array(self._unitInfo[unit]['y_hist']).T
         # print("v_hist=\n", v_hist)
         # print("y_hist=\n", y_hist)
         # print(str(unit),y_hist)
         for i in range(len(t_hist)):
-          print("HaoyuDispatchSummary,", str(unit), ",t,", t_hist[i], ",v0,", v_hist[0][i], ",v1,", v_hist[1][i], 
+          print("HaoyuDispatchSummary,", str(unit), ",t,", t_hist[i], 
+          ",v0,", v_hist[0][i], ",v1,", v_hist[1][i], 
+          ",x0,", x_hist[0][i], ",x1,", x_hist[1][i], 
           ",y0,",y_hist[0][i], ",y0min,",self._unitInfo[unit]['Targets_Min'][0],",y0max,",self._unitInfo[unit]['Targets_Max'][0], 
           ",y1,",y_hist[1][i], ",y1min,",self._unitInfo[unit]['Targets_Min'][1],",y1max,",self._unitInfo[unit]['Targets_Max'][1], 
           ",y2,",y_hist[2][i], ",y2min,",self._unitInfo[unit]['Targets_Min'][2],",y2max,",self._unitInfo[unit]['Targets_Max'][2], 
@@ -2175,11 +2178,12 @@ def read_parameterized_XML(MatrixFileName):
           TimeInterval = TimeScale[1]-TimeScale[0]
         if child3.tag == 'UNorm':
             for child4 in child3:
-              para_array.append(float(child4.attrib['ActuatorParameter']))
+              parameter_list = [float(x) for x in list(child4.attrib.values())]
+              para_array.append(parameter_list)
               Temp_txtlist = child4.text.split(' ')
               Temp_floatlist = [float(item) for item in Temp_txtlist]
               UNorm_list.append(np.asarray(Temp_floatlist))
-            para_array = np.asarray(para_array)
+            para_array = np.asarray(para_array)[:,0:-1]
 
         if child3.tag == 'XNorm':
           for child4 in child3:
@@ -2424,7 +2428,7 @@ def fun_2nd_gstep_calc(x, Hm, hm, A_m, B_m, g):
   v_min = np.asarray(max(v_bt))
   return v_max, v_min
 
-def fun_CG_MIMO(x, r, H, h, baseLength):
+def fun_CG_MIMO(x, r, H, h, baseLength, plot_OK):
   # print("x=", x, "\nr=", r)
   # print("x=", x, "\nr=", r, "\nH=", H, "\nh=", h)
   n = len(x) # dimension of x
@@ -2454,31 +2458,30 @@ def fun_CG_MIMO(x, r, H, h, baseLength):
   # print("CVXPY: A solution v is", v.value)
   v = np.asarray(v.value).reshape(-1,1)
 
-  # # plot out the feasible region of v(2-dimensional), so that Hv*v <= hv
-  # fig, ax = plt.subplots(figsize=(6,6))
-  # vertices = np.asarray(vertices).reshape(-1,2)
-  # print("vertices={}".format(vertices.shape))
-  # hull = ConvexHull(vertices)
-  # plt.fill(vertices[hull.vertices,0], vertices[hull.vertices,1],'peru',alpha=0.3)
+  if plot_OK:
+    # plot out the feasible region of v(2-dimensional), so that Hv*v <= hv
+    fig, ax = plt.subplots(figsize=(4,4))
+    vertices = np.asarray(vertices).reshape(-1,2)
+    print("vertices={}".format(vertices.shape))
+    hull = ConvexHull(vertices)
+    plt.fill(vertices[hull.vertices,0], vertices[hull.vertices,1],'peru',alpha=0.3)
 
-  # ax.scatter(r[0],r[1], s=40, marker='D', color='red', alpha=1)
-  # ax.scatter(v[0],v[1], s=40, marker='X', color='blue', alpha=1)
-  # ax.legend(['Feasible Region','Original Setpoint r','Adjusted Setpoint v'], loc='best')
-  # # ax.scatter(vertices[:,0], vertices[:,1], s=10, color='black', alpha=1)
-  # # for i in range(len(vertices)):
-  # #   plt.text(vertices[i,0], vertices[i,1], str(i))
+    ax.scatter(r[0],r[1], s=80, marker='D', color='red', alpha=1)
+    ax.scatter(v[0],v[1], s=80, marker='X', color='blue', alpha=1)
+    ax.legend(['Admissible Region','Original Setpoint r','Adjusted Setpoint v'], loc='best')
 
-  
-
-  # plt.xlabel("Centered Setpoint #0 (BOP Power, MW)")
-  # plt.ylabel("Centered Setpoint #1 (SES Power, MW)")
-  
-  # # plt.setp(ax, xlim=(-360, +160))
-  # # plt.setp(ax, ylim=(-15, +35))
-  # # # plt.show()
-  # fig.savefig('FeasibleRegion_{}.png'.format(datetime.now().strftime("%Y%m%d_%H%M%S_%f")),dpi=300)
-  # # time.sleep(1)
-  # plt.close()
+    plt.xlabel("Centered Setpoint #0 (SES Power, MW)")
+    plt.ylabel("Centered Setpoint #1 (BOP Power, MW)")
+    
+    # ax.scatter(vertices[:,0], vertices[:,1], s=10, color='black', alpha=1)
+    # for i in range(len(vertices)):
+    #   plt.text(vertices[i,0], vertices[i,1], str(i))
+    # plt.setp(ax, xlim=(-360, +160))
+    # plt.setp(ax, ylim=(-15, +35))
+    # # plt.show()
+    fig.savefig('FeasibleRegion_{}.png'.format(datetime.now().strftime("%Y%m%d_%H%M%S_%f")),dpi=300)
+    # time.sleep(1)
+    plt.close()
 
   return v
     
