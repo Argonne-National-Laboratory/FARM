@@ -1591,6 +1591,20 @@ class FARM_Delta_FMU(Validator):
           'MovingWindowDuration':MovingWindowDuration,
           'Targets_Max':UpperBound,
           'Targets_Min':LowerBound,
+          't_hist_sl':[],
+          'v_hist_sl':[],
+          'x_hist_sl':[],
+          'y_hist_sl':[],
+          'v_0_sl': None,
+          'x_0_sl': None,
+          'y_0_sl': None,
+          't_idx_sl': None,
+          'A_list_sl':[],
+          'B_list_sl':[],
+          'C_list_sl':[],
+          'eig_A_list_sl':[],
+          'para_list_sl':[],
+          'tTran_list_sl':[],
           't_hist':[],
           'v_hist':[],
           'x_hist':[],
@@ -1602,6 +1616,8 @@ class FARM_Delta_FMU(Validator):
           'para_list':[],
           'tTran_list':[]}})
     print('\n self._unitInfo = \n',self._unitInfo,'\n')
+
+    # perform the self-learning stage here
 
   # ---------------------------------------------
   # API
@@ -1632,12 +1648,18 @@ class FARM_Delta_FMU(Validator):
       # The width of moving window (seconds, centered at transient edge, for moving window DMDc)
       Moving_Window_Width = self._unitInfo[unit]['MovingWindowDuration']; #Tr_Update
 
-      # empty the v_hist and y_hist
-      self._unitInfo[unit]['t_hist']=[]; self._unitInfo[unit]['v_hist']=[]
-      self._unitInfo[unit]['x_hist']=[]; self._unitInfo[unit]['y_hist']=[]
+      # Load the self learning hists, if any
+      self._unitInfo[unit]['t_hist']=copy.deepcopy(self._unitInfo[unit]['t_hist_sl'])
+      self._unitInfo[unit]['v_hist']=copy.deepcopy(self._unitInfo[unit]['v_hist_sl'])
+      self._unitInfo[unit]['x_hist']=copy.deepcopy(self._unitInfo[unit]['x_hist_sl'])
+      self._unitInfo[unit]['y_hist']=copy.deepcopy(self._unitInfo[unit]['y_hist_sl'])
       # empty the A_list, B_list, C_list, eig_A_list, para_list, tTran_list
-      self._unitInfo[unit]['A_list']=[]; self._unitInfo[unit]['B_list']=[]; self._unitInfo[unit]['C_list']=[]
-      self._unitInfo[unit]['eig_A_list']=[]; self._unitInfo[unit]['para_list']=[]; self._unitInfo[unit]['tTran_list']=[]
+      self._unitInfo[unit]['A_list']=copy.deepcopy(self._unitInfo[unit]['A_list_sl'])
+      self._unitInfo[unit]['B_list']=copy.deepcopy(self._unitInfo[unit]['B_list_sl'])
+      self._unitInfo[unit]['C_list']=copy.deepcopy(self._unitInfo[unit]['C_list_sl'])
+      self._unitInfo[unit]['eig_A_list']=copy.deepcopy(self._unitInfo[unit]['eig_A_list_sl'])
+      self._unitInfo[unit]['para_list']=copy.deepcopy(self._unitInfo[unit]['para_list_sl'])
+      self._unitInfo[unit]['tTran_list']=copy.deepcopy(self._unitInfo[unit]['tTran_list_sl'])
 
       """ 2. Read FMU file to specify the physical model"""
       fmu_filename = self._unitInfo[unit]['FMUFile']
@@ -1684,106 +1706,24 @@ class FARM_Delta_FMU(Validator):
       
       """ 3 & 4. simulate the 1st setpoint, to get the steady state output """
       LearningSetpoints = self._unitInfo[unit]['LearningSetpoints']
-      # Initialize linear model
-      # x_sys_internal = np.zeros(n).reshape(n,-1) # x_sys type == <class 'numpy.ndarray'>
-      t = -Tr_Update_sec*len(LearningSetpoints[0]) # t = -7200 s
-      t_idx = 0
-      # print("t={}".format(t)) # t=-129600.0
-      # print(a)
-
-      # Do the step-by-step simulation, from beginning to the first transient
-      while t < -Tr_Update_sec*(len(LearningSetpoints[0])-1): # only the steady state value
-        # Find the current r value
-        
-        r = copy.deepcopy(LearningSetpoints[:,t_idx])
-        # print("t_idx=", t_idx, "t=", t, "r:", type(r), r)
-        
-        # No reference governor for the first setpoint value yet
-        v = copy.deepcopy(r) # <class 'numpy.ndarray'>
-        # print("v:", type(v))
-        
-        # fetch y
-        y_fetch = np.asarray(fmu.getReal(vr_output))
-
-        # fetch v and x
-        v_fetch = np.asarray(v).reshape(m,)
-        x_fetch = np.asarray(fmu.getReal(vr_state))
-
-        # Save time, r, v, and y
-        self._unitInfo[unit]['t_hist'].append(copy.deepcopy(t))         # Time
-        self._unitInfo[unit]['v_hist'].append(copy.deepcopy(v_fetch))   # input v
-        self._unitInfo[unit]['x_hist'].append(copy.deepcopy(x_fetch))   # state x
-        self._unitInfo[unit]['y_hist'].append(copy.deepcopy(y_fetch))   # output y
-
-        # set the input. The input / state / output in FMU are real-world values
-        for i in range(len(vr_input)):
-          fmu.setReal([vr_input[i]], [v[i]]) # Note: fmu.setReal must take two lists as input
-        # perform one step
-        fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
-
-        # time increment
-        t = t + Tss
-
-      # fetch the steady-state y variables
-      v_0 = copy.deepcopy(v_fetch.reshape(m,-1))
-      x_0 = copy.deepcopy(x_fetch.reshape(n,-1))
-      y_0 = copy.deepcopy(y_fetch.reshape(p,-1))
-
-      t_idx += 1
-      
-      # check if steady-state y is within the [ymin, ymax]
-      for i in range(len(y_0)):
-        if y_0[i][0]>y_max[i]:
-          exitMessage = """\n\tERROR:  Steady state output y_STEADY[{:d}] is {:.2f} HIGHER than y upper constraints. \n
-          \tFYI:  y_STEADY = {};
-          \tFYI: y_maximum = {};
-          \tFYI: y_minimum = {}.\n
-          \tPlease modify the steady state setpoint in learningSetpoints[:,0].\n""".format(i, y_0[i][0]-y_max[i],
-          np.array2string(y_0.flatten(), formatter={'float_kind':lambda x: "%.4e" % x}),
-          np.array2string(y_max, formatter={'float_kind':lambda x: "%.4e" % x}),
-          np.array2string(y_min, formatter={'float_kind':lambda x: "%.4e" % x}),
-          )
-          sys.exit(exitMessage)
-        elif y_0[i]<y_min[i]:
-          print(y_min[i], y_0[i][0])
-          exitMessage = """\n\tERROR:  Steady state output y_STEADY[{:d}] is {:.2f} LOWER than y lower constraints. \n
-          \tFYI: y_maximum = {};
-          \tFYI: y_minimum = {};
-          \tFYI:  y_STEADY = {}.\n
-          \tPlease modify the steady state setpoint in learningSetpoints[:,0].\n""".format(i, y_min[i]-y_0[i][0],
-          np.array2string(y_max, formatter={'float_kind':lambda x: "%.4e" % x}),
-          np.array2string(y_min, formatter={'float_kind':lambda x: "%.4e" % x}),
-          np.array2string(y_0.flatten(), formatter={'float_kind':lambda x: "%.4e" % x}),
-          )
-          sys.exit(exitMessage)
-      print("\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-      print("^^^ Steady State Summary Start ^^^")
-      print("t =", t - Tss, "\nv_0 =\n", v_0, "\nx_0 = \n",x_0,"\ny_0 = \n",y_0)
-      print("^^^^ Steady State Summary End ^^^^")
-      print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
-      # Summary: at the end of Step 4, the nominal values are stored in u_0, x_0 and y_0. 
-      # print(a)
-
-      """ 5. Simulate the using the second r_ext value, to get the first guess of ABCD matrices """
       window = int(Moving_Window_Width/Tss) # window width for DMDc
-          
-      while t_idx < LearningSetpoints[0].size:
-        # extract the desired r vector
-        r_spec = LearningSetpoints[:,t_idx] # (2,)
-        print("t_idx=",t_idx, ", r_spec=",r_spec)
+      if len(self._unitInfo[unit]['t_hist']) == 0: # if self-learning was never run before  # Initialize linear model
+        # x_sys_internal = np.zeros(n).reshape(n,-1) # x_sys type == <class 'numpy.ndarray'>
+        t = -Tr_Update_sec*len(LearningSetpoints[0]) # t = -7200 s
+        t_idx = 0
+        # print("t={}".format(t)) # t=-129600.0
+        # print(a)
 
-        # Shift input
-        i_input = 0.
-        while t < -Tr_Update_sec*(len(LearningSetpoints[0])-1-t_idx): # only the steady state value
+        # Do the step-by-step simulation, from beginning to the first transient
+        while t < -Tr_Update_sec*(len(LearningSetpoints[0])-1): # only the steady state value
           # Find the current r value
           
-          r = copy.deepcopy(r_spec)
+          r = copy.deepcopy(LearningSetpoints[:,t_idx])
+          # print("t_idx=", t_idx, "t=", t, "r:", type(r), r)
           
           # No reference governor for the first setpoint value yet
-          if i_input < m:
-            v[math.floor(i_input)]=copy.deepcopy(r[math.floor(i_input)])
-            i_input += 1/setpoints_shift_step
-            # print("t=",t,", v=", v )
+          v = copy.deepcopy(r) # <class 'numpy.ndarray'>
+          # print("v:", type(v))
           
           # fetch y
           y_fetch = np.asarray(fmu.getReal(vr_output))
@@ -1797,7 +1737,7 @@ class FARM_Delta_FMU(Validator):
           self._unitInfo[unit]['v_hist'].append(copy.deepcopy(v_fetch))   # input v
           self._unitInfo[unit]['x_hist'].append(copy.deepcopy(x_fetch))   # state x
           self._unitInfo[unit]['y_hist'].append(copy.deepcopy(y_fetch))   # output y
-          
+
           # set the input. The input / state / output in FMU are real-world values
           for i in range(len(vr_input)):
             fmu.setReal([vr_input[i]], [v[i]]) # Note: fmu.setReal must take two lists as input
@@ -1807,85 +1747,195 @@ class FARM_Delta_FMU(Validator):
           # time increment
           t = t + Tss
 
-        # Collect data for DMDc
-        t_window = np.asarray(self._unitInfo[unit]['t_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(1,-1)
-        v_window = np.asarray(self._unitInfo[unit]['v_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(-1,m).T
-        x_window = np.asarray(self._unitInfo[unit]['x_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T
-        y_window = np.asarray(self._unitInfo[unit]['y_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T 
-        # print("Window Start = {}, Window End = {}".format((t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)), (t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))))
-        # print("t_window=",t_window.shape,"\n", t_window) # (2, 180)
-        # print("v_window=",v_window.shape,"\n", v_window) # (2, 180)
-        # print("x_window=",x_window.shape,"\n", x_window) # (2, 180)
-        # print(y_window.shape) # (2, 180)
+        # fetch the steady-state y variables
+        v_0 = copy.deepcopy(v_fetch.reshape(m,-1))
+        x_0 = copy.deepcopy(x_fetch.reshape(n,-1))
+        y_0 = copy.deepcopy(y_fetch.reshape(p,-1))
+
+        # store v_0, x_0 and y_0 into self._unitInfo
+        self._unitInfo[unit]['v_0_sl'] = copy.deepcopy(v_0)
+        self._unitInfo[unit]['x_0_sl'] = copy.deepcopy(x_0)
+        self._unitInfo[unit]['y_0_sl'] = copy.deepcopy(y_0)
+        
+
+        t_idx += 1
+        
+        # check if steady-state y is within the [ymin, ymax]
+        for i in range(len(y_0)):
+          if y_0[i][0]>y_max[i]:
+            exitMessage = """\n\tERROR:  Steady state output y_STEADY[{:d}] is {:.2f} HIGHER than y upper constraints. \n
+            \tFYI:  y_STEADY = {};
+            \tFYI: y_maximum = {};
+            \tFYI: y_minimum = {}.\n
+            \tPlease modify the steady state setpoint in learningSetpoints[:,0].\n""".format(i, y_0[i][0]-y_max[i],
+            np.array2string(y_0.flatten(), formatter={'float_kind':lambda x: "%.4e" % x}),
+            np.array2string(y_max, formatter={'float_kind':lambda x: "%.4e" % x}),
+            np.array2string(y_min, formatter={'float_kind':lambda x: "%.4e" % x}),
+            )
+            sys.exit(exitMessage)
+          elif y_0[i]<y_min[i]:
+            print(y_min[i], y_0[i][0])
+            exitMessage = """\n\tERROR:  Steady state output y_STEADY[{:d}] is {:.2f} LOWER than y lower constraints. \n
+            \tFYI: y_maximum = {};
+            \tFYI: y_minimum = {};
+            \tFYI:  y_STEADY = {}.\n
+            \tPlease modify the steady state setpoint in learningSetpoints[:,0].\n""".format(i, y_min[i]-y_0[i][0],
+            np.array2string(y_max, formatter={'float_kind':lambda x: "%.4e" % x}),
+            np.array2string(y_min, formatter={'float_kind':lambda x: "%.4e" % x}),
+            np.array2string(y_0.flatten(), formatter={'float_kind':lambda x: "%.4e" % x}),
+            )
+            sys.exit(exitMessage)
+        print("\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        print("^^^ Steady State Summary Start ^^^")
+        print("t =", t - Tss, "\nv_0 =\n", v_0, "\nx_0 = \n",x_0,"\ny_0 = \n",y_0)
+        print("^^^^ Steady State Summary End ^^^^")
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
+        # Summary: at the end of Step 4, the nominal values are stored in u_0, x_0 and y_0. 
         # print(a)
 
+        """ 5. Simulate the using the second r_ext value, to get the first guess of ABCD matrices """
         
-        # Do the DMDc, and return ABCD matrices
-        U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
+            
+        while t_idx < LearningSetpoints[0].size:
+          # extract the desired r vector
+          r_spec = LearningSetpoints[:,t_idx] # (2,)
+          print("t_idx=",t_idx, ", r_spec=",r_spec)
 
-        # if U1 has any dimension unchanged within the window, DMDc will return A matrix with eigenvalue of 1.
-        # Skip DMDc if no U1 has constant components.
-        flagNoTransient = False
-        for item in U1: 
-          if abs(np.max(item) - np.min(item)) < 1: # if there is constant setpoint, cannot run DMDc
-            flagNoTransient = True
+          # Shift input
+          i_input = 0.
+          while t < -Tr_Update_sec*(len(LearningSetpoints[0])-1-t_idx): # only the steady state value
+            # Find the current r value
+            
+            r = copy.deepcopy(r_spec)
+            
+            # No reference governor for the first setpoint value yet
+            if i_input < m:
+              v[math.floor(i_input)]=copy.deepcopy(r[math.floor(i_input)])
+              i_input += 1/setpoints_shift_step
+              # print("t=",t,", v=", v )
+            
+            # fetch y
+            y_fetch = np.asarray(fmu.getReal(vr_output))
 
-        Do_DMDc = False
-        if not flagNoTransient: # if transient found within this window
-          if len(self._unitInfo[unit]['para_list'])==0:
-            # if para_list is empty, do DMDc
-            Do_DMDc = True
-          else:
-            CloseParaExist = False; nearest_para=[]
-            for item in self._unitInfo[unit]['para_list']:
-              if np.linalg.norm(np.asarray(item).reshape(-1,)-v_window[:,-1].reshape(-1,)) < 1.0:
-                CloseParaExist = True
-                nearest_para = item
+            # fetch v and x
+            v_fetch = np.asarray(v).reshape(m,)
+            x_fetch = np.asarray(fmu.getReal(vr_state))
 
-            if not CloseParaExist:
-              Do_DMDc = True
+            # Save time, r, v, and y
+            self._unitInfo[unit]['t_hist'].append(copy.deepcopy(t))         # Time
+            self._unitInfo[unit]['v_hist'].append(copy.deepcopy(v_fetch))   # input v
+            self._unitInfo[unit]['x_hist'].append(copy.deepcopy(x_fetch))   # state x
+            self._unitInfo[unit]['y_hist'].append(copy.deepcopy(y_fetch))   # output y
+            
+            # set the input. The input / state / output in FMU are real-world values
+            for i in range(len(vr_input)):
+              fmu.setReal([vr_input[i]], [v[i]]) # Note: fmu.setReal must take two lists as input
+            # perform one step
+            fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
 
-        if Do_DMDc:
-          Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1)
-          # Dd_Dc = np.zeros((p,m))
-          # append the A,B,C,D matrices to an list
-          self._unitInfo[unit]['A_list'].append(Ad_Dc); 
-          self._unitInfo[unit]['B_list'].append(Bd_Dc); 
-          self._unitInfo[unit]['C_list'].append(Cd_Dc); 
-          self._unitInfo[unit]['para_list'].append((U1[:,-1]+v_0.reshape(m,)).tolist()); 
-          self._unitInfo[unit]['eig_A_list'].append(np.max(np.linalg.eig(Ad_Dc)[0]))
-          self._unitInfo[unit]['tTran_list'].append(t-Tr_Update_sec)
-          print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
-          print("&&& DMDc summary Start &&&")
-          print("Unit =", str(unit), ", t_idx = ", t_idx, ", t = ", t-Tr_Update_sec, ", v_window[:,0] =", v_window[:,0], ", v_window[:,-1] =", v_window[:,-1])
-          print("A_list=\n",self._unitInfo[unit]['A_list'])
-          print("B_list=\n",self._unitInfo[unit]['B_list'])
-          print("C_list=\n",self._unitInfo[unit]['C_list'])
-          print("para_list=\n",self._unitInfo[unit]['para_list'])
-          print("eig_A_list=\n",self._unitInfo[unit]['eig_A_list'])
-          print("tTran_list=\n",self._unitInfo[unit]['tTran_list'])
-          print("&&&& DMDc summary End &&&&")
-          print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+            # time increment
+            t = t + Tss
+
+          # Collect data for DMDc
+          t_window = np.asarray(self._unitInfo[unit]['t_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(1,-1)
+          v_window = np.asarray(self._unitInfo[unit]['v_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).reshape(-1,m).T
+          x_window = np.asarray(self._unitInfo[unit]['x_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T
+          y_window = np.asarray(self._unitInfo[unit]['y_hist'][(t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)):(t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))]).T 
+          # print("Window Start = {}, Window End = {}".format((t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2)), (t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2))))
+          # print("t_window=",t_window.shape,"\n", t_window) # (2, 180)
+          # print("v_window=",v_window.shape,"\n", v_window) # (2, 180)
+          # print("x_window=",x_window.shape,"\n", x_window) # (2, 180)
+          # print(y_window.shape) # (2, 180)
           # print(a)
-        else:
-          print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
-          print("&&& DMDc was not done. &&&")
-          print("t_idx = ", t_idx, ", t = ", t-Tr_Update_sec, ", v_window[:,0] =", v_window[:,0], ", v_window[:,-1] =", v_window[:,-1])
-          if flagNoTransient:
-            print("Reason: Transient is too small. v_window[:,0] =", v_window[:,0], ", v_window[:,-1] =", v_window[:,-1])
-          elif CloseParaExist: 
-            print("Reason: New parameter is too close to existing parameter [{}].".format(nearest_para))
-            print("New parameter =", v_window[:,-1].tolist(), "Para_list =",self._unitInfo[unit]['para_list'])
-          print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
-        
-        t_idx += 1
 
-      if len(self._unitInfo[unit]['A_list']) == 0:
-        sys.exit('ERROR:  No proper transient found in "LearningSetpoints". \n\tPlease modify the values in "LearningSetpoints" to ensure all the set-points changed at least one moment.\n')
-      # print(a)
+          
+          # Do the DMDc, and return ABCD matrices
+          U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
+
+          # if U1 has any dimension unchanged within the window, DMDc will return A matrix with eigenvalue of 1.
+          # Skip DMDc if no U1 has constant components.
+          flagNoTransient = False
+          for item in U1: 
+            if abs(np.max(item) - np.min(item)) < 1: # if there is constant setpoint, cannot run DMDc
+              flagNoTransient = True
+
+          Do_DMDc = False
+          if not flagNoTransient: # if transient found within this window
+            if len(self._unitInfo[unit]['para_list'])==0:
+              # if para_list is empty, do DMDc
+              Do_DMDc = True
+            else:
+              CloseParaExist = False; nearest_para=[]
+              for item in self._unitInfo[unit]['para_list']:
+                if np.linalg.norm(np.asarray(item).reshape(-1,)-v_window[:,-1].reshape(-1,)) < 1.0:
+                  CloseParaExist = True
+                  nearest_para = item
+
+              if not CloseParaExist:
+                Do_DMDc = True
+
+          if Do_DMDc:
+            Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1)
+            # Dd_Dc = np.zeros((p,m))
+            # append the A,B,C,D matrices to an list
+            self._unitInfo[unit]['A_list'].append(Ad_Dc); 
+            self._unitInfo[unit]['B_list'].append(Bd_Dc); 
+            self._unitInfo[unit]['C_list'].append(Cd_Dc); 
+            self._unitInfo[unit]['para_list'].append((U1[:,-1]+v_0.reshape(m,)).tolist()); 
+            self._unitInfo[unit]['eig_A_list'].append(np.max(np.linalg.eig(Ad_Dc)[0]))
+            self._unitInfo[unit]['tTran_list'].append(t-Tr_Update_sec)
+            print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+            print("&&& DMDc summary Start &&&")
+            print("Unit =", str(unit), ", t_idx = ", t_idx, ", t = ", t-Tr_Update_sec, ", v_window[:,0] =", v_window[:,0], ", v_window[:,-1] =", v_window[:,-1])
+            print("A_list=\n",self._unitInfo[unit]['A_list'])
+            print("B_list=\n",self._unitInfo[unit]['B_list'])
+            print("C_list=\n",self._unitInfo[unit]['C_list'])
+            print("para_list=\n",self._unitInfo[unit]['para_list'])
+            print("eig_A_list=\n",self._unitInfo[unit]['eig_A_list'])
+            print("tTran_list=\n",self._unitInfo[unit]['tTran_list'])
+            print("&&&& DMDc summary End &&&&")
+            print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+            # print(a)
+          else:
+            print("\n&&&&&&&&&&&&&&&&&&&&&&&&&&")
+            print("&&& DMDc was not done. &&&")
+            print("t_idx = ", t_idx, ", t = ", t-Tr_Update_sec, ", v_window[:,0] =", v_window[:,0], ", v_window[:,-1] =", v_window[:,-1])
+            if flagNoTransient:
+              print("Reason: Transient is too small. v_window[:,0] =", v_window[:,0], ", v_window[:,-1] =", v_window[:,-1])
+            elif CloseParaExist: 
+              print("Reason: New parameter is too close to existing parameter [{}].".format(nearest_para))
+              print("New parameter =", v_window[:,-1].tolist(), "Para_list =",self._unitInfo[unit]['para_list'])
+            print("&&&&&&&&&&&&&&&&&&&&&&&&&&\n")
+          
+          t_idx += 1
+
+        if len(self._unitInfo[unit]['A_list']) == 0:
+          sys.exit('ERROR:  No proper transient found in "LearningSetpoints". \n\tPlease modify the values in "LearningSetpoints" to ensure all the set-points changed at least one moment.\n')
+        # print(a)
+
+        # save the histories to _sl hist
+        self._unitInfo[unit]['t_hist_sl']=copy.deepcopy(self._unitInfo[unit]['t_hist'])
+        self._unitInfo[unit]['v_hist_sl']=copy.deepcopy(self._unitInfo[unit]['v_hist'])
+        self._unitInfo[unit]['x_hist_sl']=copy.deepcopy(self._unitInfo[unit]['x_hist'])
+        self._unitInfo[unit]['y_hist_sl']=copy.deepcopy(self._unitInfo[unit]['y_hist'])
+        # empty the A_list, B_list, C_list, eig_A_list, para_list, tTran_list
+        self._unitInfo[unit]['A_list_sl']=copy.deepcopy(self._unitInfo[unit]['A_list'])
+        self._unitInfo[unit]['B_list_sl']=copy.deepcopy(self._unitInfo[unit]['B_list'])
+        self._unitInfo[unit]['C_list_sl']=copy.deepcopy(self._unitInfo[unit]['C_list'])
+        self._unitInfo[unit]['eig_A_list_sl']=copy.deepcopy(self._unitInfo[unit]['eig_A_list'])
+        self._unitInfo[unit]['para_list_sl']=copy.deepcopy(self._unitInfo[unit]['para_list'])
+        self._unitInfo[unit]['tTran_list_sl']=copy.deepcopy(self._unitInfo[unit]['tTran_list'])
+        self._unitInfo[unit]['t_idx_sl']=copy.deepcopy(t_idx)
+
 
       """ 6. Simulate from the third r_ext value using RG, and update the ABCD matrices as it goes """
-      # RG-related stuff:
+      # Initialization of time, and retrieve of norminal values
+      t = 0
+      # store v_0, x_0 and y_0 into self._unitInfo
+      v_0 = copy.deepcopy(self._unitInfo[unit]['v_0_sl'])
+      x_0 = copy.deepcopy(self._unitInfo[unit]['x_0_sl'])
+      y_0 = copy.deepcopy(self._unitInfo[unit]['y_0_sl'])
+      t_idx = copy.deepcopy(self._unitInfo[unit]['t_idx_sl'])
       # MOAS steps Limit 
       g = int(Tr_Update_sec/Tss) + m*setpoints_shift_step # numbers of steps to look forward, , type = <class 'int'>
       # Calculate s for Maximal Output Admissible Set (MOAS)
@@ -1980,7 +2030,7 @@ class FARM_Delta_FMU(Validator):
         
         # calculate v_RG using command governor
         # print("Tentative r_value =\n",r_value)    
-        v_CG = fun_CG_MIMO(x_fetch.reshape(n,-1)-x_0, r.reshape(m,-1)-v_0, H_DMDc, h_DMDc,2*p*m*setpoints_shift_step, True) # 
+        v_CG = fun_CG_MIMO(x_fetch.reshape(n,-1)-x_0, r.reshape(m,-1)-v_0, H_DMDc, h_DMDc,2*p*m*setpoints_shift_step, False) # 
 
         v_adj = (v_CG + v_0).reshape(m,)
         print("\n**************************", "\n**** CG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nProfile Selected = ", profile_id, "\nr = ", r, "\nv = ", v_adj, "\n***** RG summary End *****","\n**************************\n")
@@ -1993,9 +2043,12 @@ class FARM_Delta_FMU(Validator):
         i_input = 0.
         for i in range(int(Tr_Update_sec/Tss)):
           # Shift the v components
-          if i_input < m:
-            v[math.floor(i_input)]=copy.deepcopy(v_adj[math.floor(i_input)])
-            i_input += 1/setpoints_shift_step
+          if tidx==0:
+            v = copy.deepcopy(v_adj)
+          else:
+            if i_input < m:
+              v[math.floor(i_input)]=copy.deepcopy(v_adj[math.floor(i_input)])
+              i_input += 1/setpoints_shift_step
           
           # fetch y
           y_fetch = np.asarray(fmu.getReal(vr_output))
@@ -2042,20 +2095,15 @@ class FARM_Delta_FMU(Validator):
           if abs(np.max(item) - np.min(item)) < 1: # if there is constant setpoint, cannot run DMDc
             flagNoTransient = True
 
-        Do_DMDc = False
-        if not flagNoTransient and t_idx!=len(LearningSetpoints[0]): # if transient found within this window
-          if len(self._unitInfo[unit]['para_list'])==0:
-            # if para_list is empty, do DMDc
-            Do_DMDc = True
-          else:
-            CloseParaExist = False; nearest_para=[]
-            for item in self._unitInfo[unit]['para_list']:
-              if np.linalg.norm(np.asarray(item).reshape(-1,)-v_window[:,-1].reshape(-1,)) < 1.0:
-                CloseParaExist = True
-                nearest_para = item
+        CloseParaExist = False; nearest_para=-1
+        for item in self._unitInfo[unit]['para_list']:
+          if np.linalg.norm(np.asarray(item).reshape(-1,)-v_window[:,-1].reshape(-1,)) < 1.0:
+            CloseParaExist = True
+            nearest_para = item
 
-            if not CloseParaExist:
-              Do_DMDc = True
+        Do_DMDc = False
+        if not flagNoTransient and not CloseParaExist and t_idx!=len(LearningSetpoints[0]): # if transient found within this window
+          Do_DMDc = True
 
         if Do_DMDc:
           Ad_Dc, Bd_Dc, Cd_Dc= fun_DMDc(X1, X2, U1, Y1, -1)

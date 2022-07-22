@@ -11,7 +11,7 @@
 
   <Case name="Sweep_Runs">
     <mode>sweep</mode>
-    <num_arma_samples>1</num_arma_samples>
+    <num_arma_samples>3</num_arma_samples>
     <time_discretization>
       <time_variable>Time</time_variable>
       <end_time>11</end_time>
@@ -33,7 +33,7 @@
     <validator>
       <FARM_Delta_FMU>
         <ComponentForFARM name="DualUnit">
-          <FMUFile>%FARM%/tests/heron_validator/FARM_Delta_FMU/FMUs/BOP_SES_empty_MWinput.fmu</FMUFile>
+          <FMUFile>%FARM%/tests/heron_validator/FARM_Delta_FMU/OS_Windows/FMUs/BOP_SES_empty_MWinput.fmu</FMUFile>
           <FMUSimulationStep> 10. </FMUSimulationStep>       
           <ComponentNamesForFMUInput> SES, BOP </ComponentNamesForFMUInput>
           <InputVarNames> SES_Demand_MW, BOP_Demand_MW </InputVarNames>

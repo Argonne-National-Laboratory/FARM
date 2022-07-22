@@ -33,7 +33,7 @@
     <validator>
       <FARM_Gamma_LTI>
         <ComponentForFARM name="BOP">
-          <MatricesFile>%FARM%/tests/heron_validator/FARM_Gamma_LTI/ABCD_Matrices/DMDcCxCoeff_BOP_para.xml</MatricesFile>
+          <MatricesFile>%FARM%/tests/heron_validator/FARM_Gamma_LTI/OS_Windows/ABCD_Matrices/DMDcCxCoeff_BOP_para.xml</MatricesFile>
           <SystemProfile> 8 </SystemProfile>
           <LearningSetpoints> 1100., 1075.</LearningSetpoints>
           <MovingWindowDuration> 1800 </MovingWindowDuration>
@@ -42,7 +42,7 @@
           <InitialState> 1.50000172e+09 </InitialState>
         </ComponentForFARM>
         <ComponentForFARM name="SES">
-          <MatricesFile>%FARM%/tests/heron_validator/FARM_Gamma_LTI/ABCD_Matrices/DMDcCxCoeff_SES_para.xml</MatricesFile>
+          <MatricesFile>%FARM%/tests/heron_validator/FARM_Gamma_LTI/OS_Windows/ABCD_Matrices/DMDcCxCoeff_SES_para.xml</MatricesFile>
           <SystemProfile> 8 </SystemProfile>
           <LearningSetpoints> 46., 15.</LearningSetpoints>
           <MovingWindowDuration> 1800 </MovingWindowDuration>
