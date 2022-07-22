@@ -193,7 +193,6 @@ def fun_RG_SISO(v_0, x, r, H, h, p):
 
     return v
 
-
 def fun_RG_SISO_vBound(v_0, x, r, H, h, p):
   n = len(x)  # dimension of x
   x = np.vstack(x)  # x is horizontal array, must convert to vertical for matrix operation
@@ -373,8 +372,6 @@ def check_YNorm_within_Range(y_min, y_max, power_array, UNorm_list, XNorm_list, 
 
     power_array_ = np.asarray(power_array_); eig_A_array_ = np.asarray(eig_A_array_)
     return power_array_, UNorm_list_, XNorm_list_, XLast_list_, YNorm_list_, A_list_, B_list_, C_list_, eig_A_array_
-
-
 
 def fun_2nd_gstep_calc(x, Hm, hm, A_m, B_m, g):
     n = len(x) # dimension of x
