@@ -329,7 +329,7 @@ class FARM_Gamma_LTI(Validator):
     component.addSub(InputData.parameterInputFactory('LearningSetpoints',contentType=InputTypes.InterpretedListType,
         descr=r"""The learning setpoints are used to find the nominal value and first sets of ABCD matrices. 
         It should be a list of two or more floating numbers or integers separated by comma."""))
-    component.addSub(InputData.parameterInputFactory('MovingWindowDuration',contentType=InputTypes.IntegerType,
+    component.addSub(InputData.parameterInputFactory('RollingWindowWidth',contentType=InputTypes.IntegerType,
         descr=r"""The moving window duration for DMDc, with the unit of seconds. It should be an integer."""))
     component.addSub(InputData.parameterInputFactory('OpConstraintsUpper',contentType=InputTypes.InterpretedListType,
         descr=r"""The upper bounds for the output variables of this component. It should be a list of
@@ -385,8 +385,8 @@ class FARM_Gamma_LTI(Validator):
           elif min(LearningSetpoints)==max(LearningSetpoints):
             exitMessage = """ERROR:  No transient found in <LearningSetpoints>. \n\tPlease modify the values in <LearningSetpoints>.\n"""
             sys.exit(exitMessage)        
-        if farmEntry.getName() == "MovingWindowDuration":
-          MovingWindowDuration = farmEntry.value
+        if farmEntry.getName() == "RollingWindowWidth":
+          RollingWindowWidth = farmEntry.value
         if farmEntry.getName() == "OpConstraintsUpper":
           UpperBound = farmEntry.value
         if farmEntry.getName() == "OpConstraintsLower":
@@ -398,7 +398,7 @@ class FARM_Gamma_LTI(Validator):
           'MatrixFile':matFile,
           'systemProfile':systemProfile,
           'LearningSetpoints':LearningSetpoints,
-          'MovingWindowDuration':MovingWindowDuration,
+          'RollingWindowWidth':RollingWindowWidth,
           'Targets_Max':UpperBound,
           'Targets_Min':LowerBound,
           'XInit':xInit,
@@ -449,7 +449,7 @@ class FARM_Gamma_LTI(Validator):
           y_max = np.asarray(self._unitInfo[unit]['Targets_Max'])
 
           # The width of moving window (seconds, centered at transient edge, for moving window DMDc)
-          Moving_Window_Width = self._unitInfo[unit]['MovingWindowDuration']; #Tr_Update
+          Moving_Window_Width = self._unitInfo[unit]['RollingWindowWidth']; #Tr_Update
 
           # empty the v_hist and y_hist
           self._unitInfo[unit]['t_hist']=[]; self._unitInfo[unit]['v_hist']=[]
@@ -895,7 +895,7 @@ class FARM_Gamma_FMU(Validator):
     component.addSub(InputData.parameterInputFactory('LearningSetpoints',contentType=InputTypes.InterpretedListType,
         descr=r"""The learning setpoints are used to find the nominal value and first sets of ABCD matrices. 
         It should be a list of two or more floating numbers or integers separated by comma."""))
-    component.addSub(InputData.parameterInputFactory('MovingWindowDuration',contentType=InputTypes.IntegerType,
+    component.addSub(InputData.parameterInputFactory('RollingWindowWidth',contentType=InputTypes.IntegerType,
         descr=r"""The moving window duration for DMDc, with the unit of seconds. It should be an integer."""))
     component.addSub(InputData.parameterInputFactory('OpConstraintsUpper',contentType=InputTypes.InterpretedListType,
         descr=r"""The upper bounds for the output variables of this component. It should be a list of
@@ -953,8 +953,8 @@ class FARM_Gamma_FMU(Validator):
           elif min(LearningSetpoints)==max(LearningSetpoints):
             exitMessage = """ERROR:  No transient found in <LearningSetpoints>. \n\tPlease modify the values in <LearningSetpoints>.\n"""
             sys.exit(exitMessage)        
-        if farmEntry.getName() == "MovingWindowDuration":
-          MovingWindowDuration = farmEntry.value
+        if farmEntry.getName() == "RollingWindowWidth":
+          RollingWindowWidth = farmEntry.value
         if farmEntry.getName() == "OpConstraintsUpper":
           UpperBound = farmEntry.value
         if farmEntry.getName() == "OpConstraintsLower":
@@ -968,7 +968,7 @@ class FARM_Gamma_FMU(Validator):
           'StateVarNames':StateVarNames,
           'OutputVarNames':OutputVarNames,
           'LearningSetpoints':LearningSetpoints,
-          'MovingWindowDuration':MovingWindowDuration,
+          'RollingWindowWidth':RollingWindowWidth,
           'Targets_Max':UpperBound,
           'Targets_Min':LowerBound,
           't_hist':[],
@@ -1018,7 +1018,7 @@ class FARM_Gamma_FMU(Validator):
           y_max = np.asarray(self._unitInfo[unit]['Targets_Max'])
 
           # The width of moving window (seconds, centered at transient edge, for moving window DMDc)
-          Moving_Window_Width = self._unitInfo[unit]['MovingWindowDuration']; #Tr_Update
+          Moving_Window_Width = self._unitInfo[unit]['RollingWindowWidth']; #Tr_Update
 
           # empty the v_hist and y_hist
           self._unitInfo[unit]['t_hist']=[]; self._unitInfo[unit]['v_hist']=[]
@@ -1504,7 +1504,7 @@ class FARM_Delta_FMU(Validator):
         descr=r"""The learning setpoints are used to find the nominal value and first sets of ABCD matrices. 
         It should be a list of 2\+ floating numbers for component 1, then same amount of floating numbers for 
         component 2, etc. All numbers should be in one row and separated by comma."""))
-    component.addSub(InputData.parameterInputFactory('MovingWindowDuration',contentType=InputTypes.IntegerType,
+    component.addSub(InputData.parameterInputFactory('RollingWindowWidth',contentType=InputTypes.IntegerType,
         descr=r"""The moving window duration for DMDc, with the unit of seconds. It should be an integer."""))
     component.addSub(InputData.parameterInputFactory('OpConstraintsUpper',contentType=InputTypes.InterpretedListType,
         descr=r"""The upper bounds for the output variables of this component. It should be a list of
@@ -1572,8 +1572,8 @@ class FARM_Delta_FMU(Validator):
               if min(setPointSeries)==max(setPointSeries):
                 exitMessage = """ERROR:  No transient found in <LearningSetpoints>. \n\tPlease modify the values in <LearningSetpoints>.\n"""
                 sys.exit(exitMessage)        
-        if farmEntry.getName() == "MovingWindowDuration":
-          MovingWindowDuration = farmEntry.value
+        if farmEntry.getName() == "RollingWindowWidth":
+          RollingWindowWidth = farmEntry.value
         if farmEntry.getName() == "OpConstraintsUpper":
           UpperBound = farmEntry.value
         if farmEntry.getName() == "OpConstraintsLower":
@@ -1588,7 +1588,7 @@ class FARM_Delta_FMU(Validator):
           'StateVarNames':StateVarNames,
           'OutputVarNames':OutputVarNames,
           'LearningSetpoints':LearningSetpoints,
-          'MovingWindowDuration':MovingWindowDuration,
+          'RollingWindowWidth':RollingWindowWidth,
           'Targets_Max':UpperBound,
           'Targets_Min':LowerBound,
           't_hist_sl':[],
@@ -1646,7 +1646,7 @@ class FARM_Delta_FMU(Validator):
       y_max = np.asarray(self._unitInfo[unit]['Targets_Max'])
 
       # The width of moving window (seconds, centered at transient edge, for moving window DMDc)
-      Moving_Window_Width = self._unitInfo[unit]['MovingWindowDuration']; #Tr_Update
+      Moving_Window_Width = self._unitInfo[unit]['RollingWindowWidth']; #Tr_Update
 
       # Load the self learning hists, if any
       self._unitInfo[unit]['t_hist']=copy.deepcopy(self._unitInfo[unit]['t_hist_sl'])
