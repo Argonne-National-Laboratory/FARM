@@ -212,7 +212,7 @@ for row_idx=1:6
         plot(time(t_dispa),DispatchSummary(t_dispa,2),'Color','#0072BD')
         ylabel('v0, SES SetPnt(MW)','FontSize',FontSize); 
         y_lb = min(DispatchSummary(:,2)); y_ub = max(DispatchSummary(:,2));
-        title('Self-Learning Stage')
+        title('Dispatching Stage')
     elseif row_idx==2 % output, y0, SES Power
         plot(time(t_dispa),DispatchSummary(t_dispa,6),'--r','LineWidth',3)
         plot(time(t_dispa),DispatchSummary(t_dispa,4),'-k')
@@ -337,7 +337,7 @@ for row_idx=1:6
         plot(time(t_dispa),DispatchSummary(t_dispa,2),'Color','#0072BD')
         ylabel('v0, SES SetPnt(MW)','FontSize',FontSize); 
         y_lb = min(DispatchSummary(:,2)); y_ub = max(DispatchSummary(:,2));
-        title('Self-Learning Stage')
+        title('Dispatching Stage')
     elseif row_idx==2 % output, y0, SES Power
         plot(time(t_dispa),DispatchSummary(t_dispa,6),'--r','LineWidth',3)
         plot(time(t_dispa),DispatchSummary(t_dispa,4),'-k')
