@@ -1,8 +1,8 @@
 [Tests]
-  [./HERONvalidatorFARMalpha_Windows]
+  [./HERONvalidatorFARMalpha]
     type = HeronIntegration
     input = heron_input_FARM_alpha_BOP_SES.xml
-    skip_if_OS = Linux, mac, SunOs
+    # replace the "skip_if_OS = Linux, mac, SunOs" with OS specific gold file
     [./csv]
       type = OrderedCSV
       output = 'Sweep_Runs_o/sweep.csv'

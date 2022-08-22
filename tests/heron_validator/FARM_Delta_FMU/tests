@@ -1,5 +1,5 @@
 [Tests]
-  [./HERONvalidatorFARMdeltaFMU_Windows]
+  [./HERONvalidatorFARMdeltaFMU_WindowsOnly]
     type = HeronIntegration
     input = heron_input_FARM_deltaFMU_BOPSES.xml
     skip_if_OS = Linux, mac, SunOS
