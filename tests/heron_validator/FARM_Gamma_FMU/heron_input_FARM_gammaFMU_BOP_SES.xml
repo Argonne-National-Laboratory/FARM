@@ -33,7 +33,7 @@
     <validator>
       <FARM_Gamma_FMU>
         <ComponentForFARM name="BOP">
-          <FMUFile>%FARM%/tests/heron_validator/FARM_Gamma_FMU/OS_Windows/FMUs/BOP_empty_MWinput.fmu</FMUFile>
+          <FMUFile>%FARM%/tests/heron_validator/FARM_Gamma_FMU/FMUs/BOP_empty_MWinput.fmu</FMUFile>
           <FMUSimulationStep> 10. </FMUSimulationStep>
           <InputVarNames> BOP_Demand_MW </InputVarNames>
           <StateVarNames> BOP.CS.W_totalSetpoint, BOP.steamTurbine.shaft_b.tau </StateVarNames>
@@ -44,7 +44,7 @@
           <OpConstraintsLower> 10.0E8, 51.8E5 </OpConstraintsLower>
         </ComponentForFARM>
         <ComponentForFARM name="SES">
-          <FMUFile>%FARM%/tests/heron_validator/FARM_Gamma_FMU/OS_Windows/FMUs/SES_empty_MWinput.fmu</FMUFile>
+          <FMUFile>%FARM%/tests/heron_validator/FARM_Gamma_FMU/FMUs/SES_empty_MWinput.fmu</FMUFile>
           <FMUSimulationStep> 10. </FMUSimulationStep>
           <InputVarNames> SES_Demand_MW </InputVarNames>
           <StateVarNames> SES.CS.W_totalSetpoint, SES.Tf_pu.y </StateVarNames>
