@@ -1,0 +1,22 @@
+[Tests]
+  [./SIMO_svs_Template_create_FARMgamma]
+    type = RavenPython
+    input = svs_Workflow_Writer/svs_maker.py
+    skip_if_OS = Linux, mac, SunOs
+    [./createInput]
+      type = XML
+      output = 'svs_Workflow_Writer/svs_new_inputFile.xml'
+    [../]
+  [../]
+  [./HERONvalidatorFARMgammaFMU_svs_WindowsOnly]
+    type = HeronIntegration
+    input = heron_input_FARM_gammaFMU_BOP_SES.xml
+    skip_if_OS = Linux, mac, SunOs
+    [./csv]
+      type = OrderedCSV
+      output = 'Sweep_Runs_o/sweep.csv'
+      zero_threshold = 1e-6
+      rel_err = 1e-6
+    [../]
+  [../]
+[]

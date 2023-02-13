@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<Simulation verbosity="debug">
+  <RunInfo>
+    <WorkingDir></WorkingDir>
+    <!-- <Sequence>readTrainData,DMDCTrain,stats,writeOut</Sequence> -->
+    <Sequence>readTrainData,DMDCTrain,pickleRom,stats,writeOut</Sequence>
+    <batchSize></batchSize>
+    <internalParallel>True</internalParallel>
+  </RunInfo>
+
+  <Files>
+    <!--  we load a synthesized data with 1 time, 1 actuation(u), 3 state(x) and 2 output(y) -->
+	  <!-- Note: Adjacent rows should have constant time interval for DMDC -->
+    <Input name="TrainDataFile">./outputData.csv</Input>
+    <Input name="ROMpk" type="">ROMpk</Input>
+    <!-- <Input name="constantFile" type="">constantSource.csv</Input> -->
+
+  </Files>
+  
+  <Models>
+    <ROM name="DMDrom" subType="DMDC">
+      <!-- Target contains Time, StateVariable Names (x) and OutputVariable Names (y) in training data -->
+      <Target>Time,state_variables,output_variables</Target>
+      <!-- Actuator Variable Names (u) -->
+      <actuators>actuator_variables</actuators>
+      <!-- StateVariables Names (x) -->
+      <stateVariables>state_variables</stateVariables>
+      <!-- Pivot variable (e.g. Time) -->
+      <pivotParameter>Time</pivotParameter>
+      <!-- rankSVD: -1 = No truncation; 0 = optimized truncation; pos. int = truncation level -->
+      <rankSVD>-1</rankSVD>
+      <!-- SubtractNormUXY: True = will subtract the initial values from U,X,Y -->
+      <subtractNormUXY>True</subtractNormUXY>
+	    
+      <!-- Features are the variable names for predictions: Actuator "u", scheduling parameters, and initial states -->
+      <Features>actuator_variables,scheduling_paras,state_variables_init</Features>
+      <!-- Initialization Variables-->
+      <initStateVariables>state_variables_init</initStateVariables>
+
+      <featureSelection>
+        <RFE name="mySelectionAlgo">
+          <!-- <parametersToInclude>state_variables</parametersToInclude> -->
+          <parametersToInclude>parameters_to_include</parametersToInclude>
+          <onlyOutputScore>False</onlyOutputScore>
+          <step>10</step>
+          <maxNumberFeatures></maxNumberFeatures>
+          <applyClusteringFiltering>False</applyClusteringFiltering>
+          <whichSpace>target</whichSpace>
+          
+        </RFE>
+      </featureSelection>
+     </ROM>
+  </Models>
+  
+  <Steps>
+    <IOStep name="readTrainData">
+      <Input class="Files" type="">TrainDataFile</Input>
+      <Output class="DataObjects" type="HistorySet">TrainData</Output>
+    </IOStep>
+	  <RomTrainer name="DMDCTrain">
+      <Input class="DataObjects" type="HistorySet">TrainData</Input>
+      <Output class="Models" type="ROM">DMDrom</Output>
+    </RomTrainer>
+    <IOStep name="pickleRom">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="Files" type="">ROMpk</Output>
+    </IOStep>
+    <IOStep name="stats">
+      <Input class="Models" type="ROM">DMDrom</Input>
+      <Output class="DataObjects" type="DataSet">rom_stats</Output>
+    </IOStep>
+    <IOStep name="writeOut" pauseAtEnd="True">
+      <Input class="DataObjects" type="DataSet">rom_stats</Input>
+      <Output class="OutStreams" type="Print">DMDcCxCoeff </Output>
+    </IOStep>
+  </Steps>
+
+  <OutStreams>
+    <Print name="DMDcCxCoeff">
+      <type>csv</type>
+      <source>rom_stats</source>
+    </Print>
+    <Print name="outputData">
+      <type>csv</type>
+      <source>outputData</source>
+    </Print>
+  </OutStreams>
+
+  <DataObjects>
+    <PointSet name="dataIn"/>  
+    <HistorySet name="outputData">
+      <Input>scheduling_paras,state_variables_init</Input>
+      <Output>actuator_variables,output_variables,state_variables,Time</Output>
+      <options>
+        <pivotParameter>Time</pivotParameter>
+      </options>
+    </HistorySet>
+    <HistorySet name="TrainData">
+      <Input>scheduling_paras,state_variables_init</Input>
+      <Output>actuator_variables,output_variables,state_variables,Time</Output>
+      <options>
+        <pivotParameter>Time</pivotParameter>
+      </options>
+    </HistorySet>
+    <DataSet name="rom_stats"/>
+  </DataObjects>
+
+  <VariableGroups>
+    <Group name="scheduling_paras"></Group>
+    <Group name="actuator_variables"></Group>
+    <Group name="output_variables"></Group>
+    <Group name="state_variables"></Group>
+    <Group name="parameters_to_include">
+      state_variables
+    </Group>
+    <Group name="state_variables_init"></Group>
+  </VariableGroups>
+</Simulation>
+
+
+
