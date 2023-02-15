@@ -36,7 +36,7 @@
           <FMUFile>%FARM%/tests/heron_validator/FARM_Delta_FMU_StateVariableSelection/FMUs/BOP_SES_empty_MWinput.fmu</FMUFile>
           <ComponentNamesForFMUInput> SES, BOP </ComponentNamesForFMUInput>
           <setpointsShiftStep> 2 </setpointsShiftStep>
-          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Delta_FMU_StateVariableSelection/svs_Workflow_Writer/StateVariableSelectionTemplate/simulatedData/DMDcCxCoeff_SES_BOP.xml</StateVariableSelectionXML>
+          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Delta_FMU_StateVariableSelection/stateVarSelection/stateVarSelectionTemplate/simulatedData/DMDcCxCoeff_SES_BOP.xml</StateVariableSelectionXML>
           <!-- <FMUSimulationStep> 10. </FMUSimulationStep> -->
           <!-- <InputVarNames> SES_Demand_MW, BOP_Demand_MW </InputVarNames> -->
           <!-- <StateVarNames> SES.GTunit.combChamber.fluegas.h, BOP.CS.PID_TCV_opening.addP.u2 </StateVarNames> -->

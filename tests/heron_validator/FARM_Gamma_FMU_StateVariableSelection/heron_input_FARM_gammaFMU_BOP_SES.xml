@@ -34,7 +34,7 @@
       <FARM_Gamma_FMU>
         <ComponentForFARM name="BOP">
           <FMUFile>%FARM%/tests/heron_validator/FARM_Gamma_FMU/FMUs/BOP_empty_MWinput.fmu</FMUFile>
-          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Gamma_FMU_StateVariableSelection/svs_Workflow_Writer/StateVariableSelectionTemplate/simulatedDataBOP/DMDcCxCoeff.xml</StateVariableSelectionXML>
+          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Gamma_FMU_StateVariableSelection/stateVarSelection/stateVarSelectionTemplate/simulatedDataBOP/DMDcCxCoeff.xml</StateVariableSelectionXML>
           <!-- <FMUSimulationStep> 10. </FMUSimulationStep> -->
           <!-- <InputVarNames> BOP_Demand_MW </InputVarNames> -->
           <!-- <StateVarNames> BOP.CS.W_totalSetpoint, BOP.steamTurbine.shaft_b.tau </StateVarNames> -->
@@ -47,7 +47,7 @@
         </ComponentForFARM>
         <ComponentForFARM name="SES">
           <FMUFile>%FARM%/tests/heron_validator/FARM_Gamma_FMU/FMUs/SES_empty_MWinput.fmu</FMUFile>
-          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Gamma_FMU_StateVariableSelection/svs_Workflow_Writer/StateVariableSelectionTemplate/simulatedDataSES/DMDcCxCoeff.xml</StateVariableSelectionXML>
+          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Gamma_FMU_StateVariableSelection/stateVarSelection/stateVarSelectionTemplate/simulatedDataSES/DMDcCxCoeff.xml</StateVariableSelectionXML>
           <!-- <FMUSimulationStep> 10. </FMUSimulationStep> -->
           <!-- <InputVarNames> SES_Demand_MW </InputVarNames> -->
           <!-- <StateVarNames> SES.CS.W_totalSetpoint, SES.Tf_pu.y </StateVarNames> -->

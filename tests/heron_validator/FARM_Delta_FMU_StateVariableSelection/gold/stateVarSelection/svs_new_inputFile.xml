@@ -1,6 +1,6 @@
 <Simulation verbosity="debug">
   <RunInfo>
-    <WorkingDir>StateVariableSelectionTemplate/simulatedData</WorkingDir>
+    <WorkingDir>stateVarSelectionTemplate/simulatedData</WorkingDir>
     <Sequence>readTrainData,DMDCTrain,pickleRom,stats,writeOut</Sequence>
     <batchSize>8</batchSize>
     <internalParallel>True</internalParallel>

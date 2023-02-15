@@ -1,12 +1,12 @@
 [Tests]
   [./MIMO_svs_Template_create_FARMdelta]
     type = RavenPython
-    input = svs_Workflow_Writer/svs_maker.py
+    input = stateVarSelection/svs_maker.py
     skip_if_OS = Linux, mac, SunOs
     max_time = 1000
     [./createInput]
       type = XML
-      output = 'svs_Workflow_Writer/svs_new_inputFile.xml'
+      output = 'stateVarSelection/svs_new_inputFile.xml'
     [../]
   [../]
   [./HERONvalidatorFARMdeltaFMU_WindowsOnly]

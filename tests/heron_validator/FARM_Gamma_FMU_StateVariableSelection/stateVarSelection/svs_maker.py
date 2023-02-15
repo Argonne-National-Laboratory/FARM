@@ -31,7 +31,7 @@ import copy
 import math
 import csv
 
-from StateVariableSelectionTemplate.svsTemplate import svsTemplate
+from stateVarSelectionTemplate.svsTemplate import svsTemplate
 
 
 """1. Load information from 'svs_template_input.i' """
@@ -40,7 +40,7 @@ config = configparser.ConfigParser()
 # find the current folder containing this "svs_maker.py" file
 current_folder = os.path.dirname(os.path.realpath(__file__))
 # construct the full path of "svs_template_input.i"
-file_path = os.path.join(current_folder,'StateVariableSelectionTemplate','svs_template_input.i')
+file_path = os.path.join(current_folder,'stateVarSelectionTemplate','svs_template_input.i')
 # read the input file
 config.read(file_path)
 print('Loaded input file:', file_path, '\n')
