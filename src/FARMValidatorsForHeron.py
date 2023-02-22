@@ -2952,6 +2952,7 @@ def fun_CG_MIMO(x, r, H, h, baseLength, plot_OK):
   v = cp.Variable(m)
 
   prob = cp.Problem(cp.Minimize(cp.quad_form(v, P) - 2*q.T @ v + q.T @ q), [Hv @ v <= hv, Cv @ v == dv])
+  # prob = cp.Problem(cp.Minimize(cp.quad_form(v, P) - 2*q.T @ v + q.T @ q), [Hv @ v <= hv])
   prob.solve(solver=cp.OSQP, verbose=False, eps_abs=1.0e-2, eps_rel=1.0e-2) # This works!
   # prob.solve(solver=cp.ECOS, verbose=False, abstol=1.0e-5, reltol=1.0e-5) # This also works
 

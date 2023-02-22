@@ -2,13 +2,12 @@
 # fmuFile: related to the "svs_maker.py"
 # fmuFile = ../FMUs/BOP_empty_MWinput.fmu
 fmuFile = ../FMUs/SES_empty_MWinput.fmu
-# inputVar: deliminate multiple input variables by comma (,)
+# inputVar: delimit multiple input variables by comma (,)
 # inputVar = BOP_Demand_MW
 inputVar = SES_Demand_MW
-# outputVar: deliminate each subgroup by semicolon (;), and deliminate each output variable of the same subgroupt by comma (,)
+# outputVar: delimit each subgroup by semicolon (;), and delimit each output variable of the same subgroupt by comma (,)
 # outputVar = Electric_Power, Turbine_Pressure
 outputVar = Electric_Power, Firing_Temperature
-
 
 [simulationInfo]
 # fmuStepSize: float number, measured in seconds
@@ -38,13 +37,13 @@ inputTransients =
 periodToChange = 3600
 
 [outputDataInfo]
-# outputFolder: TODO: How to use #FARM# to specify relative path?
-# outputFolder = stateVarSelectionTemplate/simulatedDataBOP
-outputFolder = stateVarSelectionTemplate/simulatedDataSES
 # outputTimeStart: float number, measured in seconds. All the data before this time value will be cropped out.
 outputTimeStart = 1800
 # outputTimeEnd: float number, measured in seconds. The simulation will end at this time value
-outputTimeEnd = 18000
+outputTimeEnd = 5400
+# outputFolder: TODO: How to use #FARM# to specify relative path?
+# outputFolder = stateVarSelectionTemplate/simulatedDataBOP
+outputFolder = stateVarSelectionTemplate/simulatedDataSES
 
 [featureSelectionInfo]
 # maxParallelCores: will be written in <RunInfo> - <batchSize>. 

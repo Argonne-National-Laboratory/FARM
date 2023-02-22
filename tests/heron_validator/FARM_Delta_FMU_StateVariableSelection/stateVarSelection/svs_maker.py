@@ -129,8 +129,8 @@ T_end = outputDataInfo['outputTimeEnd']
 # print(T_start,T_end)
 tTran = np.arange(T_start+Tr_Update, T_end+Tr_Update, Tr_Update) # the moments when setpoint change [ 3600.  7200. 10800. 14400. 18000.]
 t_ext = np.arange(T_start, T_end, fmu_stepsize) #[0, 10, 20, ... 17990]
-# print(tTran) 
-# print(t_ext) 
+# print("tTran=", tTran) 
+# print("t_ext=",t_ext) 
 outputTimeStart = outputDataInfo['outputTimeStart']
 
 # simulate according to each entry of "inputTransients"
@@ -182,7 +182,7 @@ for i_case in range(len(inputTransients)): # i_case = 0,1,2
     # print("x_fetch:",type(x_fetch), x_fetch.shape, x_fetch)
 
     # Save time, r, v, and y
-    if t >= outputTimeStart:
+    if t >= outputTimeStart and t < T_end:
       t_hist.append(copy.deepcopy(t))         # Time
       r_hist.append(copy.deepcopy(r))         # reference setpoint r
       x_hist.append(copy.deepcopy(x_fetch))   # state x
@@ -227,7 +227,7 @@ for i_case in range(len(inputTransients)): # i_case = 0,1,2
       # print("x_fetch:",type(x_fetch), x_fetch.shape, x_fetch)
 
       # Save time, r, v, and y
-      if t >= outputTimeStart:
+      if t >= outputTimeStart and t < T_end:
         t_hist.append(copy.deepcopy(t))         # Time
         r_hist.append(copy.deepcopy(r))         # reference setpoint r
         x_hist.append(copy.deepcopy(x_fetch))   # state x

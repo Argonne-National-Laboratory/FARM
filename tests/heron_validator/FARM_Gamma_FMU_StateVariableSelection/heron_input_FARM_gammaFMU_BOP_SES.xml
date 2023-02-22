@@ -34,20 +34,20 @@
       <FARM_Gamma_FMU>
         <ComponentForFARM name="BOP">
           <FMUFile>%FARM%/tests/heron_validator/FARM_Gamma_FMU/FMUs/BOP_empty_MWinput.fmu</FMUFile>
-          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Gamma_FMU_StateVariableSelection/stateVarSelection/stateVarSelectionTemplate/simulatedDataBOP/DMDcCxCoeff.xml</StateVariableSelectionXML>
+          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Gamma_FMU_StateVariableSelection/stateVarSelection/stateVarSelectionTemplate/simulatedDataBOP/DMDcCxCoeff_5400s.xml</StateVariableSelectionXML>
           <!-- <FMUSimulationStep> 10. </FMUSimulationStep> -->
           <!-- <InputVarNames> BOP_Demand_MW </InputVarNames> -->
           <!-- <StateVarNames> BOP.CS.W_totalSetpoint, BOP.steamTurbine.shaft_b.tau </StateVarNames> -->
           <!-- <OutputVarNames> Electric_Power, Turbine_Pressure </OutputVarNames> -->
           <!-- <LearningSetpoints> 1100., 1150. </LearningSetpoints> -->
           <NeighborSetpointsThreshold> 1.0 </NeighborSetpointsThreshold>
-          <OpConstraintsUpper> 12.0E8, 53.8E5 </OpConstraintsUpper>
-          <OpConstraintsLower> 10.0E8, 51.8E5 </OpConstraintsLower>
+          <OpConstraintsUpper> 13.5E8, 53.8E5 </OpConstraintsUpper>
+          <OpConstraintsLower> 8.25E8, 51.8E5 </OpConstraintsLower>
           <RollingWindowWidth> 1800 </RollingWindowWidth>
         </ComponentForFARM>
         <ComponentForFARM name="SES">
           <FMUFile>%FARM%/tests/heron_validator/FARM_Gamma_FMU/FMUs/SES_empty_MWinput.fmu</FMUFile>
-          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Gamma_FMU_StateVariableSelection/stateVarSelection/stateVarSelectionTemplate/simulatedDataSES/DMDcCxCoeff.xml</StateVariableSelectionXML>
+          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_Gamma_FMU_StateVariableSelection/stateVarSelection/stateVarSelectionTemplate/simulatedDataSES/DMDcCxCoeff_5400s.xml</StateVariableSelectionXML>
           <!-- <FMUSimulationStep> 10. </FMUSimulationStep> -->
           <!-- <InputVarNames> SES_Demand_MW </InputVarNames> -->
           <!-- <StateVarNames> SES.CS.W_totalSetpoint, SES.Tf_pu.y </StateVarNames> -->

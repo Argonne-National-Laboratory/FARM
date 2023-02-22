@@ -334,39 +334,43 @@ figure(50)
 set(gcf,'Position',[100 100 1400 900])
 FontSize = 15;
 % define the logical arrays for learning and dispatching stages
-t_learn = time<0; x_learn_min = floor(min(time(t_learn))); x_learn_max = ceil(max(time(t_learn)));
+t_learn = time<0; 
 t_dispa = time>0; x_dispa_min = floor(min(time(t_dispa))); x_dispa_max = ceil(max(time(t_dispa)));
 % plot the input and outputs during learning and dispatching stages
 col_plot=9;
 for row_idx=1:3
-    % plot self-learning stage
-    subplot(3,col_plot,(row_idx-1)*col_plot+[1:2])
-    hold on
-    if row_idx==1 % power setpoint
-        plot(time(t_learn),BOP_vyminmax(t_learn,1),'Color','#0072BD')
-        ylabel('Power Setpoint (MW)','FontSize',FontSize); 
-        y_lb = min(BOP_vyminmax(:,1)); y_ub = max(BOP_vyminmax(:,1));
-%         title("BOP, 2-hour Self-learning Stage",'FontSize',FontSize)
-    elseif row_idx==2 % power output
-        plot(time(t_learn),BOP_vyminmax(t_learn,4),'--r','LineWidth',3)
-        plot(time(t_learn),BOP_vyminmax(t_learn,2),'-k')
-        plot(time(t_learn),BOP_vyminmax(t_learn,3),'--b','LineWidth',3)
-        ylabel('Power output (MW)','FontSize',FontSize);
-        y_lb = min(BOP_vyminmax(:,3)); y_ub = max(BOP_vyminmax(:,4));
-        legend('Upper Bound','Output #1','Lower Bound','Location','best','FontSize',FontSize)
-    elseif row_idx==3 % pressure
-        plot(time(t_learn),BOP_vyminmax(t_learn,7),'--r','LineWidth',3)
-        plot(time(t_learn),BOP_vyminmax(t_learn,5),'-k')
-        plot(time(t_learn),BOP_vyminmax(t_learn,6),'--b','LineWidth',3)
-        ylabel('Turbine Pressure (bar)','FontSize',FontSize);
-        y_lb = min(BOP_vyminmax(:,6)); y_ub = max(BOP_vyminmax(:,7));
-        legend('Upper Bound','Output #2','Lower Bound','Location','best','FontSize',FontSize)
+    if any(t_learn)
+        x_learn_min = floor(min(time(t_learn))); x_learn_max = ceil(max(time(t_learn)));
+
+        % plot self-learning stage
+        subplot(3,col_plot,(row_idx-1)*col_plot+[1:2])
+        hold on
+        if row_idx==1 % power setpoint
+            plot(time(t_learn),BOP_vyminmax(t_learn,1),'Color','#0072BD')
+            ylabel('Power Setpoint (MW)','FontSize',FontSize); 
+            y_lb = min(BOP_vyminmax(:,1)); y_ub = max(BOP_vyminmax(:,1));
+    %         title("BOP, 2-hour Self-learning Stage",'FontSize',FontSize)
+        elseif row_idx==2 % power output
+            plot(time(t_learn),BOP_vyminmax(t_learn,4),'--r','LineWidth',3)
+            plot(time(t_learn),BOP_vyminmax(t_learn,2),'-k')
+            plot(time(t_learn),BOP_vyminmax(t_learn,3),'--b','LineWidth',3)
+            ylabel('Power output (MW)','FontSize',FontSize);
+            y_lb = min(BOP_vyminmax(:,3)); y_ub = max(BOP_vyminmax(:,4));
+            legend('Upper Bound','Output #1','Lower Bound','Location','best','FontSize',FontSize)
+        elseif row_idx==3 % pressure
+            plot(time(t_learn),BOP_vyminmax(t_learn,7),'--r','LineWidth',3)
+            plot(time(t_learn),BOP_vyminmax(t_learn,5),'-k')
+            plot(time(t_learn),BOP_vyminmax(t_learn,6),'--b','LineWidth',3)
+            ylabel('Turbine Pressure (bar)','FontSize',FontSize);
+            y_lb = min(BOP_vyminmax(:,6)); y_ub = max(BOP_vyminmax(:,7));
+            legend('Upper Bound','Output #2','Lower Bound','Location','best','FontSize',FontSize)
+        end
+        xlabel('Time (Hour)','FontSize',FontSize);
+        xlim([x_learn_min x_learn_max]);xticks(x_learn_min:x_tick_interval:x_learn_max)
+        ylim([y_lb-(y_ub-y_lb)*0.2 y_ub+(y_ub-y_lb)*0.2])
+        ytickformat('%.1f')
+        set(gca,'FontSize',FontSize)
     end
-    xlabel('Time (Hour)','FontSize',FontSize);
-    xlim([x_learn_min x_learn_max]);xticks(x_learn_min:x_tick_interval:x_learn_max)
-    ylim([y_lb-(y_ub-y_lb)*0.2 y_ub+(y_ub-y_lb)*0.2])
-    ytickformat('%.1f')
-    set(gca,'FontSize',FontSize)
 
     % plot dispatching stage
     subplot(3,col_plot,(row_idx-1)*col_plot+[4:col_plot])
@@ -410,34 +414,37 @@ t_dispa = time>0; x_dispa_min = floor(min(time(t_dispa))); x_dispa_max = ceil(ma
 % plot the input and outputs during learning and dispatching stages
 col_plot=9;
 for row_idx=1:3
-    % plot self-learning stage
-    subplot(3,col_plot,(row_idx-1)*col_plot+[1:2])
-    hold on
-    if row_idx==1 % power setpoint
-        plot(time(t_learn),SES_vyminmax(t_learn,1),'Color','#0072BD')
-        ylabel('Power Setpoint (MW)','FontSize',FontSize); 
-        y_lb = min(SES_vyminmax(:,1)); y_ub = max(SES_vyminmax(:,1));
-%         title("SES, 2-hour Self-learning Stage",'FontSize',FontSize)
-    elseif row_idx==2 % power output
-        plot(time(t_learn),SES_vyminmax(t_learn,4),'--r','LineWidth',3)
-        plot(time(t_learn),SES_vyminmax(t_learn,2),'-k')
-        plot(time(t_learn),SES_vyminmax(t_learn,3),'--b','LineWidth',3)
-        ylabel('Power output (MW)','FontSize',FontSize);
-        y_lb = min(SES_vyminmax(:,3)); y_ub = max(SES_vyminmax(:,4));
-        legend('Upper Bound','Output #1','Lower Bound','Location','best','FontSize',FontSize)
-    elseif row_idx==3 % pressure
-        plot(time(t_learn),SES_vyminmax(t_learn,7),'--r','LineWidth',3)
-        plot(time(t_learn),SES_vyminmax(t_learn,5),'-k')
-        plot(time(t_learn),SES_vyminmax(t_learn,6),'--b','LineWidth',3)
-        ylabel('Firing Temp. (K)','FontSize',FontSize);
-        y_lb = min(SES_vyminmax(:,6)); y_ub = max(SES_vyminmax(:,7));
-        legend('Upper Bound','Output #2','Lower Bound','Location','best','FontSize',FontSize)
+    if any(t_learn)
+        x_learn_min = floor(min(time(t_learn))); x_learn_max = ceil(max(time(t_learn)));
+        % plot self-learning stage
+        subplot(3,col_plot,(row_idx-1)*col_plot+[1:2])
+        hold on
+        if row_idx==1 % power setpoint
+            plot(time(t_learn),SES_vyminmax(t_learn,1),'Color','#0072BD')
+            ylabel('Power Setpoint (MW)','FontSize',FontSize); 
+            y_lb = min(SES_vyminmax(:,1)); y_ub = max(SES_vyminmax(:,1));
+    %         title("SES, 2-hour Self-learning Stage",'FontSize',FontSize)
+        elseif row_idx==2 % power output
+            plot(time(t_learn),SES_vyminmax(t_learn,4),'--r','LineWidth',3)
+            plot(time(t_learn),SES_vyminmax(t_learn,2),'-k')
+            plot(time(t_learn),SES_vyminmax(t_learn,3),'--b','LineWidth',3)
+            ylabel('Power output (MW)','FontSize',FontSize);
+            y_lb = min(SES_vyminmax(:,3)); y_ub = max(SES_vyminmax(:,4));
+            legend('Upper Bound','Output #1','Lower Bound','Location','best','FontSize',FontSize)
+        elseif row_idx==3 % pressure
+            plot(time(t_learn),SES_vyminmax(t_learn,7),'--r','LineWidth',3)
+            plot(time(t_learn),SES_vyminmax(t_learn,5),'-k')
+            plot(time(t_learn),SES_vyminmax(t_learn,6),'--b','LineWidth',3)
+            ylabel('Firing Temp. (K)','FontSize',FontSize);
+            y_lb = min(SES_vyminmax(:,6)); y_ub = max(SES_vyminmax(:,7));
+            legend('Upper Bound','Output #2','Lower Bound','Location','best','FontSize',FontSize)
+        end
+        xlabel('Time (Hour)','FontSize',FontSize);
+        xlim([x_learn_min x_learn_max]);xticks(x_learn_min:x_tick_interval:x_learn_max)
+        ylim([y_lb-(y_ub-y_lb)*0.2 y_ub+(y_ub-y_lb)*0.2])
+        ytickformat('%.1f')
+        set(gca,'FontSize',FontSize)
     end
-    xlabel('Time (Hour)','FontSize',FontSize);
-    xlim([x_learn_min x_learn_max]);xticks(x_learn_min:x_tick_interval:x_learn_max)
-    ylim([y_lb-(y_ub-y_lb)*0.2 y_ub+(y_ub-y_lb)*0.2])
-    ytickformat('%.1f')
-    set(gca,'FontSize',FontSize)
 
     % plot dispatching stage
     subplot(3,col_plot,(row_idx-1)*col_plot+[4:col_plot])
@@ -477,14 +484,16 @@ FontSize = 15;
 col_plot=9;
 % plot the stacked bars of power components, time in hours
 
-t_learn = time_hour<0; x_learn_min = floor(min(time_hour(t_learn))); x_learn_max = ceil(max(time_hour(t_learn)));
+t_learn = time_hour<0; 
 t_dispa = time_hour>0; x_dispa_min = floor(min(time_hour(t_dispa))); x_dispa_max = ceil(max(time_hour(t_dispa)));
 
-subplot(1,col_plot,[1:2]) % learning
-ba = bar(time_hour(t_learn), power_array_hour(t_learn,:), 'stacked', 'FaceColor','flat');hold on
-ba(1).CData = [0 0.4470 0.7410];
-ba(2).CData = [0.9290 0.6940 0.1250];
-set(gca,'FontSize',FontSize)
+if any(t_learn)
+    subplot(1,col_plot,[1:2]) % learning
+    ba = bar(time_hour(t_learn), power_array_hour(t_learn,:), 'stacked', 'FaceColor','flat');hold on
+    ba(1).CData = [0 0.4470 0.7410];
+    ba(2).CData = [0.9290 0.6940 0.1250];
+    set(gca,'FontSize',FontSize)
+end
 
 subplot(1,col_plot,[4:col_plot]) % dispatching
 ba = bar(time_hour(t_dispa), power_array_hour(t_dispa,:), 'stacked', 'FaceColor','flat');hold on
@@ -493,16 +502,19 @@ ba(2).CData = [0.9290 0.6940 0.1250];
 set(gca,'FontSize',FontSize)
 
 % Plot the line showing total power provided, time in seconds
-t_learn = time<0; x_learn_min = floor(min(time(t_learn))); x_learn_max = ceil(max(time(t_learn)));
+t_learn = time<0; 
 t_dispa = time>0; x_dispa_min = floor(min(time(t_dispa))); x_dispa_max = ceil(max(time(t_dispa)));
 
-subplot(1,col_plot,[1:2]) % learning
-plot(time(t_learn), power_provided(t_learn),'LineWidth',3,'color','#7E2F8E');hold off
-xlabel('Time (Hour)','FontSize',FontSize);ylabel('Power (MW)','FontSize',18); 
-xlim([x_learn_min x_learn_max]);xticks(x_learn_min:x_tick_interval:x_learn_max)
-legend('BOP Output Power','SES Output Power','Total','Location','best','FontSize',FontSize)
-title('BOP & SES, 2-hour Self-learning Stage','FontSize',FontSize)
-% ylim([600 1200])
+if any(t_learn)
+    x_learn_min = floor(min(time(t_learn))); x_learn_max = ceil(max(time(t_learn)));
+    subplot(1,col_plot,[1:2]) % learning
+    plot(time(t_learn), power_provided(t_learn),'LineWidth',3,'color','#7E2F8E');hold off
+    xlabel('Time (Hour)','FontSize',FontSize);ylabel('Power (MW)','FontSize',18); 
+    xlim([x_learn_min x_learn_max]);xticks(x_learn_min:x_tick_interval:x_learn_max)
+    legend('BOP Output Power','SES Output Power','Total','Location','best','FontSize',FontSize)
+    title('BOP & SES, 2-hour Self-learning Stage','FontSize',FontSize)
+    % ylim([600 1200])
+end
 
 subplot(1,col_plot,[4:col_plot]) % dispatching
 plot(time(t_dispa), power_provided(t_dispa),'LineWidth',3,'color','#7E2F8E');hold off
