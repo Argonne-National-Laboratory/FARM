@@ -28,6 +28,7 @@ import math
 from scipy import signal
 from scipy import io
 from scipy.interpolate import interp1d
+from sklearn import neighbors
 from datetime import datetime
 import csv
 import sys
@@ -176,7 +177,7 @@ class RefGov_parameterized_SIMO(ExternalModelPluginBase):
     # print(MatrixFileName)
 
     # Load the XML file containing the ABC matrices
-    container.Tss, container.n, container.m, container.p, container.para_array, container.UNorm_list, container.XNorm_list, container.XLast_list, container.YNorm_list, container.A_list, container.B_list, container.C_list, container.eig_A_array = read_parameterized_XML(MatrixFileName)
+    container.Tss, container.n, container.m, container.p, container.para_array, container.UNorm_list, container.XNorm_list, container.XLast_list, container.YNorm_list, container.A_list, container.B_list, container.C_list, container.eig_A_array, _, _, _ = read_parameterized_XML(MatrixFileName)
     # Tss is the sampling period of discrete A,B,C matrices
 
     if len(container.RG_Min_Targets)!=container.p or len(container.RG_Max_Targets)!=container.p:
@@ -217,7 +218,13 @@ class RefGov_parameterized_SIMO(ExternalModelPluginBase):
 
     """ Select the correct profile with ABCD matrices """
     # Find the correct profile according to r_value
-    profile_id = (np.abs(container.para_array - r_value)).argmin()
+    # profile_id = (np.abs(container.para_array - r_value)).argmin()
+    
+    # build an nearest neighbor classifier
+    neigh_classifier = neighbors.KNeighborsRegressor(n_neighbors=1)
+    neigh_classifier.fit(container.para_array, np.asarray(range(len(container.para_array))))
+    # Find the correct profile according to r_spec
+    profile_id = neigh_classifier.predict(r_value.reshape(1,-1)).astype(int)[0]
     # print(profile_id)
     # Retrive the correct A, B, C matrices
     A_d = container.A_list[profile_id]; B_d = container.B_list[profile_id]; C_d = container.C_list[profile_id]; D_d = np.zeros((container.p,container.m)) # all zero D matrix
@@ -273,117 +280,107 @@ class RefGov_parameterized_SIMO(ExternalModelPluginBase):
   ##################################
 
 def read_parameterized_XML(MatrixFileName):
-    tree = ET.parse(MatrixFileName)
-    root = tree.getroot()
-    para_array = []; UNorm_list = []; XNorm_list = []; XLast_list = []; YNorm_list =[]
-    A_Re_list = []; B_Re_list = []; C_Re_list = []; A_Im_list = []; B_Im_list = []; C_Im_list = []
-    for child1 in root:
-        # print(' ',child1.tag) # DMDrom
-        for child2 in child1:
-            # print('  > ', child2.tag) # ROM, DMDcModel
-            for child3 in child2:
-                # print('  >  > ', child3.tag) # dmdTimeScale, UNorm, XNorm, XLast, Atilde, Btilde, Ctilde
-                if child3.tag == 'dmdTimeScale':
-                    # print(child3.text)
-                    Temp_txtlist = child3.text.split(' ')
-                    Temp_floatlist = [float(item) for item in Temp_txtlist]
-                    TimeScale = np.asarray(Temp_floatlist)
-                    TimeInterval = TimeScale[1]-TimeScale[0]
-                    # print(TimeInterval) #10.0
-                if child3.tag == 'UNorm':
-                    for child4 in child3:
-                        # print('  >  >  > ', child4.tag)
-                        # print('  >  >  > ', child4.attrib)
-                        para_array.append(float(child4.attrib['ActuatorParameter']))
-                        Temp_txtlist = child4.text.split(' ')
-                        Temp_floatlist = [float(item) for item in Temp_txtlist]
-                        UNorm_list.append(np.asarray(Temp_floatlist))
-                    para_array = np.asarray(para_array)
-                    # print(para_array)
-                    # print(UNorm_list)
-                    # print(np.shape(self.UNorm))
-                if child3.tag == 'XNorm':
-                    for child4 in child3:
-                        Temp_txtlist = child4.text.split(' ')
-                        Temp_floatlist = [float(item) for item in Temp_txtlist]
-                        XNorm_list.append(np.asarray(Temp_floatlist))
-                    # print(XNorm_list)
-                    # print(np.shape(self.XNorm))
-                if child3.tag == 'XLast':
-                    for child4 in child3:
-                        Temp_txtlist = child4.text.split(' ')
-                        Temp_floatlist = [float(item) for item in Temp_txtlist]
-                        XLast_list.append(np.asarray(Temp_floatlist))
-                    # print(XLast_list)
-                    # print(np.shape(self.XLast))
-                if child3.tag == 'YNorm':
-                    for child4 in child3:
-                        Temp_txtlist = child4.text.split(' ')
-                        Temp_floatlist = [float(item) for item in Temp_txtlist]
-                        YNorm_list.append(np.asarray(Temp_floatlist))
-                    # print(YNorm_list)
-                    # print(YNorm_list[0])
-                    # print(np.shape(YNorm_list))
-                    # print(np.shape(self.YNorm))
-                for child4 in child3:
-                    for child5 in child4:
-                        # print('  >  >  > ', child5.tag) # real, imaginary, matrixShape, formatNote
-                        if child5.tag == 'real':
-                            Temp_txtlist = child5.text.split(' ')
-                            Temp_floatlist = [float(item) for item in Temp_txtlist]
-                            # print(Temp_txtlist)
-                            # print(Temp_floatlist)
-                            if child3.tag == 'Atilde':
-                                A_Re_list.append(np.asarray(Temp_floatlist))
-                            if child3.tag == 'Btilde':
-                                B_Re_list.append(np.asarray(Temp_floatlist))
-                            if child3.tag == 'Ctilde':
-                                C_Re_list.append(np.asarray(Temp_floatlist))
+  tree = ET.parse(MatrixFileName)
+  root = tree.getroot()
+  para_array = []; UNorm_list = []; XNorm_list = []; XLast_list = []; YNorm_list =[]
+  A_Re_list = []; B_Re_list = []; C_Re_list = []; A_Im_list = []; B_Im_list = []; C_Im_list = []
+  for child1 in root:
+    for child2 in child1:
+      for child3 in child2:
+        if child3.tag == 'acturators':
+          actuatorList = child3.text.split(' ')
+        if child3.tag == 'states' or child3.tag == 'stateVariables':
+          stateList = child3.text.split(' ')
+        if child3.tag == 'outputs':
+          outputList = child3.text.split(' ')
+        
 
-                        if child5.tag == 'imaginary':
-                            Temp_txtlist = child5.text.split(' ')
-                            Temp_floatlist = [float(item) for item in Temp_txtlist]
-                            # print(Temp_txtlist)
-                            # print(Temp_floatlist)
-                            if child3.tag == 'Atilde':
-                                A_Im_list.append(np.asarray(Temp_floatlist))
-                            if child3.tag == 'Btilde':
-                                B_Im_list.append(np.asarray(Temp_floatlist))
-                            if child3.tag == 'Ctilde':
-                                C_Im_list.append(np.asarray(Temp_floatlist))
+        if child3.tag == 'dmdTimeScale':
+          Temp_txtlist = child3.text.split(' ')
+          Temp_floatlist = [float(item) for item in Temp_txtlist]
+          TimeScale = np.asarray(Temp_floatlist)
+          TimeInterval = TimeScale[1]-TimeScale[0]
+        if child3.tag == 'UNorm':
+            for child4 in child3:
+              parameter_list=[]
+              for key in list(child4.attrib.keys()):
+                if key != 'sample':
+                  parameter_list.append(float(child4.get(key)))
+              # parameter_list = [float(x) for x in list(child4.attrib.values())]
+              para_array.append(parameter_list)
+              Temp_txtlist = child4.text.split(' ')
+              Temp_floatlist = [float(item) for item in Temp_txtlist]
+              UNorm_list.append(np.asarray(Temp_floatlist))
+            # para_array = np.asarray(para_array)[:,0:-1]
+            para_array = np.asarray(para_array)
 
-    # print(A_Re_list)
-    # print(C_Im_list)
-    n = len(XNorm_list[0]) # dimension of x
-    m = len(UNorm_list[0]) # dimension of u
-    p = len(YNorm_list[0]) # dimension of y
+        if child3.tag == 'XNorm':
+          for child4 in child3:
+            Temp_txtlist = child4.text.split(' ')
+            Temp_floatlist = [float(item) for item in Temp_txtlist]
+            XNorm_list.append(np.asarray(Temp_floatlist))
 
-    # Reshape the A, B, C lists
-    for i in range(len(para_array)):
-        A_Re_list[i]=np.reshape(A_Re_list[i],(n,n)).T
-        A_Im_list[i]=np.reshape(A_Im_list[i],(n,n)).T
-        B_Re_list[i]=np.reshape(B_Re_list[i],(m,n)).T
-        B_Im_list[i]=np.reshape(B_Im_list[i],(m,n)).T
-        C_Re_list[i]=np.reshape(C_Re_list[i],(n,p)).T
-        C_Im_list[i]=np.reshape(C_Im_list[i],(n,p)).T
+        if child3.tag == 'XLast':
+          for child4 in child3:
+            Temp_txtlist = child4.text.split(' ')
+            Temp_floatlist = [float(item) for item in Temp_txtlist]
+            XLast_list.append(np.asarray(Temp_floatlist))
 
-    # print(A_Re_list[19])
-    # print(B_Re_list[19])
-    # print(C_Re_list[19])
+        if child3.tag == 'YNorm':
+          for child4 in child3:
+            Temp_txtlist = child4.text.split(' ')
+            Temp_floatlist = [float(item) for item in Temp_txtlist]
+            YNorm_list.append(np.asarray(Temp_floatlist))
 
-    A_list = A_Re_list
-    B_list = B_Re_list
-    C_list = C_Re_list
+        for child4 in child3:
+          for child5 in child4:
+            if child5.tag == 'real':
+              Temp_txtlist = child5.text.split(' ')
+              Temp_floatlist = [float(item) for item in Temp_txtlist]
+              if child3.tag == 'Atilde':
+                A_Re_list.append(np.asarray(Temp_floatlist))
+              if child3.tag == 'Btilde':
+                B_Re_list.append(np.asarray(Temp_floatlist))
+              if child3.tag == 'Ctilde':
+                C_Re_list.append(np.asarray(Temp_floatlist))
 
-    eig_A_array=[]
-    # eigenvalue of A
-    for i in range(len(para_array)):
-        w,v = np.linalg.eig(A_list[i])
-        eig_A_array.append(max(w))
-    eig_A_array = np.asarray(eig_A_array)
-    # print(eig_A_array)
+            if child5.tag == 'imaginary':
+              Temp_txtlist = child5.text.split(' ')
+              Temp_floatlist = [float(item) for item in Temp_txtlist]
+              if child3.tag == 'Atilde':
+                A_Im_list.append(np.asarray(Temp_floatlist))
+              if child3.tag == 'Btilde':
+                B_Im_list.append(np.asarray(Temp_floatlist))
+              if child3.tag == 'Ctilde':
+                C_Im_list.append(np.asarray(Temp_floatlist))
 
-    return TimeInterval, n, m, p, para_array, UNorm_list, XNorm_list, XLast_list, YNorm_list, A_list, B_list, C_list, eig_A_array
+  n = len(XNorm_list[0]) # dimension of x
+  m = len(UNorm_list[0]) # dimension of u
+  p = len(YNorm_list[0]) # dimension of y
+
+  # Reshape the A, B, C lists
+  for i in range(len(para_array)):
+    A_Re_list[i]=np.reshape(A_Re_list[i],(n,n)).T
+    A_Im_list[i]=np.reshape(A_Im_list[i],(n,n)).T
+    B_Re_list[i]=np.reshape(B_Re_list[i],(m,n)).T
+    B_Im_list[i]=np.reshape(B_Im_list[i],(m,n)).T
+    C_Re_list[i]=np.reshape(C_Re_list[i],(n,p)).T
+    C_Im_list[i]=np.reshape(C_Im_list[i],(n,p)).T
+
+  A_list = A_Re_list
+  B_list = B_Re_list
+  C_list = C_Re_list
+
+  eig_A_array=[]
+  # eigenvalue of A
+  for i in range(len(para_array)):
+    w,v = np.linalg.eig(A_list[i])
+    eig_A_array.append(abs(max(w)))
+  eig_A_array = np.asarray(eig_A_array)
+
+  return TimeInterval, n, m, p, para_array, UNorm_list, XNorm_list, XLast_list, YNorm_list, A_list, B_list, C_list, eig_A_array, actuatorList, stateList, outputList
+
+    # return TimeInterval, n, m, p, para_array, UNorm_list, XNorm_list, XLast_list, YNorm_list, A_list, B_list, C_list, eig_A_array
 
 def check_YNorm_within_Range(y_min, y_max, para_array, UNorm_list, XNorm_list, XLast_list, YNorm_list, A_list, B_list, C_list, eig_A_array):
     UNorm_list_ = []; XNorm_list_ = []; XLast_list_ = []; YNorm_list_ =[]
