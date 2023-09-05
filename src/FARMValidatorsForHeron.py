@@ -15,15 +15,20 @@ from fmpy import read_model_description, extract
 from fmpy.fmi2 import FMU2Slave
 import copy
 from sklearn import neighbors
-import cvxpy as cp
+# import cvxpy as cp
 import matplotlib.pyplot as plt
 import time
 from datetime import datetime
 from itertools import combinations
 from scipy.spatial import ConvexHull
+from scipy.optimize import fmin
 from _utils import get_raven_loc, get_heron_loc, get_farm_loc
 from validators.Validator import Validator
 from scipy.io import savemat
+
+import cvxopt
+import quadprog
+import qpsolvers
 
 # set up raven path
 raven_path = get_raven_loc()
@@ -344,7 +349,7 @@ class FARM_Gamma_LTI(Validator):
         descr=r"""The learning setpoints are used to find the nominal value and first sets of ABCD matrices. 
         It should be a list of two or more floating numbers or integers separated by comma."""))
     component.addSub(InputData.parameterInputFactory('NeighborSetpointsThreshold',contentType=InputTypes.FloatType,
-        descr=r"""The Neighbor Setpoints Threshold is used to creat a new ABCD matrices profile. 
+        descr=r"""The Neighbor Setpoints Threshold is used to create a new ABCD matrices profile. 
         If a new setpoint falls within an existing setpoint plus or minus this threshold, no new profile will be created.
         It should be a floating number."""))
     component.addSub(InputData.parameterInputFactory('RollingWindowWidth',contentType=InputTypes.IntegerType,
@@ -986,7 +991,7 @@ class FARM_Gamma_FMU(Validator):
         It should be a list of two or more floating numbers or integers separated by comma."""))
     
     component.addSub(InputData.parameterInputFactory('NeighborSetpointsThreshold',contentType=InputTypes.FloatType,
-        descr=r"""The Neighbor Setpoints Threshold is used to creat a new ABCD matrices profile. 
+        descr=r"""The Neighbor Setpoints Threshold is used to create a new ABCD matrices profile. 
         If a new setpoint falls within an existing setpoint plus or minus this threshold, no new profile will be created.
         It should be a floating number."""))
     component.addSub(InputData.parameterInputFactory('OpConstraintsUpper',contentType=InputTypes.InterpretedListType,
@@ -1783,7 +1788,7 @@ class FARM_Delta_FMU(Validator):
         component 2, etc. All numbers should be in one row and separated by comma."""))
     
     component.addSub(InputData.parameterInputFactory('NeighborSetpointsThreshold',contentType=InputTypes.FloatType,
-        descr=r"""The Neighbor Setpoints Threshold is used to creat a new ABCD matrices profile. 
+        descr=r"""The Neighbor Setpoints Threshold is used to create a new ABCD matrices profile. 
         If a new setpoint falls within an existing setpoint plus or minus this threshold, no new profile will be created.
         It should be a floating number."""))
     component.addSub(InputData.parameterInputFactory('OpConstraintsUpper',contentType=InputTypes.InterpretedListType,
@@ -2140,7 +2145,7 @@ class FARM_Delta_FMU(Validator):
           while t_idx < LearningSetpoints[0].size:
             # extract the desired r vector
             r_spec = LearningSetpoints[:,t_idx] # (2,)
-            print("t_idx=",t_idx, ", r_spec=",r_spec)
+            # print("t_idx=",t_idx, ", r_spec=",r_spec)
 
             # Shift input
             i_input = 0.
@@ -2311,7 +2316,7 @@ class FARM_Delta_FMU(Validator):
         self._unitInfo[unit]['t_idx_sl'] = 0
       
 
-      """ 6. Simulate from the third r_ext value using RG, and update the ABCD matrices as it goes """
+      """ 6. Simulate from the third r_ext value using CG, and update the ABCD matrices as it goes """
       # Initialization of time, and retrieve of norminal values
       t = 0
       # store v_0, x_0 and y_0 into self._unitInfo
@@ -2379,6 +2384,8 @@ class FARM_Delta_FMU(Validator):
                       r_spec[i] = r_comp
 
 
+        print("\n**************************")
+        print("          CG info         ")
         print("tidx = {}, time = {}, r_spec = {}, allowedlevel = {}".format(tidx, time, r_spec, allowedLevel))
 
         # Do CG for this transient
@@ -2391,9 +2398,7 @@ class FARM_Delta_FMU(Validator):
         neigh_classifier.fit(np.asarray(self._unitInfo[unit]['para_list']), np.asarray(range(len(self._unitInfo[unit]['para_list']))))
         # Find the correct profile according to r_spec
         profile_id = neigh_classifier.predict(r_spec.reshape(1,-1)).astype(int)[0]
-        # profile_id = neigh_classifier.predict(r_spec.reshape(1,-1)).astype(int)
-        # profile_id = 1
-        print("Profile Selected = ", profile_id)
+        print("Profile Selected from r = ", profile_id)
 
         # Retrive the correct A, B, C matrices
         A_d = copy.deepcopy(self._unitInfo[unit]['A_list'][profile_id]); 
@@ -2401,22 +2406,111 @@ class FARM_Delta_FMU(Validator):
         C_d = copy.deepcopy(self._unitInfo[unit]['C_list'][profile_id]); 
         D_d = np.zeros((p,m)) # all zero D matrix
 
-        # Calculate the H and h in MOAS
+        # Calculate the H and h in MOAS: H_DMDc * [x.T v.T].T < h_DMDc
         if tidx == 0: # The 1st production set-point: use regular MOAS
           H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g, m*setpoints_shift_step)  # H and h, type = <class 'numpy.ndarray'>
         else: # from the 2nd production set-point: use shifted MOAS
           H_DMDc, h_DMDc = fun_MOAS_MIMO_Setpoint_Shift(A_d, B_d, C_d, D_d, s, g, copy.deepcopy(v_CG), setpoints_shift_step, m*setpoints_shift_step)
-          # print(a)
-        # print(h_DMDc.shape) # (2p*(g+1), 1)
-        # print(r_value-v_0) # ndarray,(m, 1)
-        # print(a)
+        
+        # remove the redundant linear constraints in Hx_DMDc * x + Hv_DMDc * v <= hv_DMDc
+        Hx_DMDc = H_DMDc[:, 0:n]; Hv_DMDc = H_DMDc[:, n:]
+        hv_DMDc = (h_DMDc - np.dot(Hx_DMDc,x_fetch.reshape(n,-1)-x_0)).reshape(-1,) # hv is the system remaining vector. We need to obey Hv * v_RG < hv
+        print("Hv_DMDc={}, hv_DMDc={}".format(Hv_DMDc.shape, hv_DMDc.shape))
+
+        Hv_Redund = Hv_DMDc; hv_Redund = hv_DMDc
+        Hv_noRedund, hv_noRedund = noRedund(Hv_Redund, hv_Redund)
+        i=0
+        print('Trial #{}, {} constraints left.'.format(i,hv_noRedund.shape[0]))
+        while hv_Redund.shape[0] != hv_noRedund.shape[0]:
+          Hv_Redund = Hv_noRedund; hv_Redund = hv_noRedund
+          Hv_noRedund, hv_noRedund = noRedund(Hv_Redund, hv_Redund)
+          i+=1
+          print('Trial #{}, {} constraints left.'.format(i,hv_noRedund.shape[0]))
+
+        print("Hv_noRedund={}, hv_noRedund={}".format(Hv_noRedund.shape, hv_noRedund.shape))
+
+        timeString = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        
+        # Save Hv, hv, r, v_0 as .mat file for offline analysis
+        mdic = {
+          "Hv_orig":Hv_DMDc, "hv_orig":hv_DMDc.reshape(-1,1), 
+          "Hv_noRedund":Hv_noRedund, "hv_noRedund":hv_noRedund.reshape(-1,1), 
+          "r":(r.reshape(m,-1)-v_0).reshape(-1,1), "v_0":v_0.reshape(-1,1)}
+        savemat('FeasibleRegion_tidx_{:03}_Clock_{}.mat'.format(tidx, timeString),mdic)
         
         # calculate v_RG using command governor
         # print("Tentative r_value =\n",r_value)    
-        v_CG = fun_CG_MIMO(x_fetch.reshape(n,-1)-x_0, r.reshape(m,-1)-v_0, H_DMDc, h_DMDc,2*p*m*setpoints_shift_step, True) # 
+        v_CG = fun_CG_MIMO(r.reshape(m,-1)-v_0, Hv_noRedund, hv_noRedund) # 
+        print("v = ",(v_CG+v_0).reshape(-1,))
+        profile_id_r = copy.deepcopy(profile_id)
+
+        # re-calculate the profile ID using v_CG
+        profile_id = neigh_classifier.predict((v_CG+v_0).reshape(1,-1)).astype(int)[0]
+        print("Profile Selected from v_CG= ", profile_id)
+
+        # if profile_id and profile_id_r are different
+        while profile_id != profile_id_r:
+          print('\nConflict. Profile #{} for r, but Profile #{} for v. Revalidating using Profile #{}...'.format(profile_id_r, profile_id, profile_id))
+          # Retrive the correct A, B, C matrices
+          A_d = copy.deepcopy(self._unitInfo[unit]['A_list'][profile_id]); 
+          B_d = copy.deepcopy(self._unitInfo[unit]['B_list'][profile_id]); 
+          C_d = copy.deepcopy(self._unitInfo[unit]['C_list'][profile_id]); 
+          D_d = np.zeros((p,m)) # all zero D matrix
+
+          # Calculate the H and h in MOAS: H_DMDc * [x.T v.T].T < h_DMDc
+          if tidx == 0: # The 1st production set-point: use regular MOAS
+            H_DMDc, h_DMDc = fun_MOAS_noinf(A_d, B_d, C_d, D_d, s, g, m*setpoints_shift_step)  # H and h, type = <class 'numpy.ndarray'>
+          else: # from the 2nd production set-point: use shifted MOAS
+            H_DMDc, h_DMDc = fun_MOAS_MIMO_Setpoint_Shift(A_d, B_d, C_d, D_d, s, g, copy.deepcopy(v_CG), setpoints_shift_step, m*setpoints_shift_step)
+          
+          # remove the redundant linear constraints in Hx_DMDc * x + Hv_DMDc * v <= hv_DMDc
+          Hx_DMDc = H_DMDc[:, 0:n]; Hv_DMDc = H_DMDc[:, n:]
+          hv_DMDc = (h_DMDc - np.dot(Hx_DMDc,x_fetch.reshape(n,-1)-x_0)).reshape(-1,) # hv is the system remaining vector. We need to obey Hv * v_RG < hv
+          print("Hv_DMDc={}, hv_DMDc={}".format(Hv_DMDc.shape, hv_DMDc.shape))
+
+          Hv_Redund = Hv_DMDc; hv_Redund = hv_DMDc
+          Hv_noRedund, hv_noRedund = noRedund(Hv_Redund, hv_Redund)
+          i=0
+          print('Trial #{}, {} constraints left.'.format(i,hv_noRedund.shape[0]))
+          while hv_Redund.shape[0] != hv_noRedund.shape[0]:
+            Hv_Redund = Hv_noRedund; hv_Redund = hv_noRedund
+            Hv_noRedund, hv_noRedund = noRedund(Hv_Redund, hv_Redund)
+            i+=1
+            print('Trial #{}, {} constraints left.'.format(i,hv_noRedund.shape[0]))
+
+          print("Hv_noRedund={}, hv_noRedund={}".format(Hv_noRedund.shape, hv_noRedund.shape))
+
+          # timeString = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+          
+          # Save Hv, hv, r, v_0 as .mat file for offline analysis
+          mdic = {
+            "Hv_orig":Hv_DMDc, "hv_orig":hv_DMDc.reshape(-1,1), 
+            "Hv_noRedund":Hv_noRedund, "hv_noRedund":hv_noRedund.reshape(-1,1), 
+            "r":(r.reshape(m,-1)-v_0).reshape(-1,1), "v_0":v_0.reshape(-1,1)}
+          savemat('FeasibleRegion_tidx_{:03}_Clock_{}.mat'.format(tidx, timeString),mdic)
+          
+          # calculate v_RG using command governor
+          # print("Tentative r_value =\n",r_value)    
+          v_CG = fun_CG_MIMO(r.reshape(m,-1)-v_0, Hv_noRedund, hv_noRedund) # 
+          print("v = ",(v_CG+v_0).reshape(-1,))
+          profile_id_r = copy.deepcopy(profile_id)
+
+          # re-calculate the profile ID using v_CG
+          profile_id = neigh_classifier.predict((v_CG+v_0).reshape(1,-1)).astype(int)[0]
+          print("Profile Selected from v_CG= ", profile_id)
+
+        print("        CG info End       ")
+        print("**************************\n")
+        
+        # Save Hv, hv, r, v_0, v as .mat file, and overwrite the previous one
+        mdic = {
+          "Hv_orig":Hv_DMDc, "hv_orig":hv_DMDc.reshape(-1,1), 
+          "Hv_noRedund":Hv_noRedund, "hv_noRedund":hv_noRedund.reshape(-1,1), 
+          "r":(r.reshape(m,-1)-v_0).reshape(-1,1), "v":v_CG.reshape(-1,1), "v_0":v_0.reshape(-1,1)}
+        savemat('FeasibleRegion_tidx_{:03}_Clock_{}.mat'.format(tidx, timeString),mdic)
 
         v_adj = (v_CG + v_0).reshape(m,)
-        print("\n**************************", "\n**** CG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nProfile Selected = ", profile_id, "\nr = ", r, "\nv = ", v_adj, "\n***** RG summary End *****","\n**************************\n")
+        print("\n**************************", "\n**** CG summary Start ****","\nUnit = ", str(unit),", t = ", t, "\nProfile Selected = ", profile_id, "\nr = ", r, "\nv = ", v_adj, "\n***** CG summary End *****","\n**************************\n")
         print("HaoyuCGSummary, " + str(unit) + ", t, " + str(t) + ", Profile, " + str(profile_id) + 
         ", r, " + ', '.join([str(num) for num in r]) + ", v, " + ', '.join([str(num) for num in v_adj]))
 
@@ -2601,11 +2695,6 @@ class FARM_Delta_FMU(Validator):
       # Get time for dispatching
       endTimeDispatch = copy.deepcopy(datetime.now())
       print('Haoyu t-debug, Time for this Dispatch is {}'.format(endTimeDispatch-startTime))
-     
-            
-              
-
-
     print(errs)
 
     if errs == []: # if no validation error:
@@ -2643,9 +2732,6 @@ class FARM_Delta_FMU(Validator):
           ", ymax, " + ', '.join([str(num) for num in self._unitInfo[unit]['Targets_Max']]))
 
     return errs
-
-
-
 
 def read_parameterized_XML(MatrixFileName):
   tree = ET.parse(MatrixFileName)
@@ -2925,70 +3011,90 @@ def fun_2nd_gstep_calc(x, Hm, hm, A_m, B_m, g):
   v_min = np.asarray(max(v_bt))
   return v_max, v_min
 
-def fun_CG_MIMO(x, r, H, h, baseLength, plot_OK):
+def fun_CG_MIMO(r, Hv, hv):
   # print("x=", x, "\nr=", r)
   # print("x=", x, "\nr=", r, "\nH=", H, "\nh=", h)
-  n = len(x) # dimension of x
   m = len(r)
-  x = np.vstack(x); r = np.vstack(r) # x is horizontal array, must convert to vertical for matrix operation
-
-  Hx = H[:, 0:n]; Hv = H[:, n:]
-  hv = (h - np.dot(Hx,x)).reshape(-1,) # hv is the system remaining vector. We need to obey Hv * v_RG < hv
-
+  r = np.vstack(r).reshape(m,) # first convert r to vertical, then reshape to 1 dimensional vector
   # linear equality for electrical power dispatch problem
-  Cv = np.ones(m)
-  dv = np.sum(r)
-
-  # remove the redundancies
-  p=4
-  Hv, hv, vertices = noredundant(Hv, hv, baseLength)
-  print("Hv={}, hv={}".format(Hv.shape, hv.shape))
-
+  Cv = np.ones(m);  dv = np.sum(r)
+  # define the P matrix for quad form v.T * P * v
   P = np.identity(m)
-  q = r.reshape(m,)
-  # print(Hv.shape)
-  # print(hv.shape)
+  
+  """ CVXPY solvers """
+  # # define v as a cp variable of length m
+  # v = cp.Variable(m)
+  # # Define objective
+  # objective = cp.Minimize((1/2)*cp.quad_form(v, P) - r.T @ v)
+  # # Define constraints
+  # constriants = [Hv @ v <= hv, Cv @ v == dv] # with explicit constraints (sum of power shouldn't be changed)
+  # # constriants = [Hv @ v <= hv] # no explicit constraints, all the dimensions of v are free to be adjusted  
+  # # Assemble problem
+  # prob = cp.Problem(objective, constriants)   
+  # # solve with solver specifications  
+  # # prob.solve(solver=cp.OSQP, verbose=False) # occasionally works
+  # # prob.solve(solver=cp.OSQP, verbose=False, eps_abs=1.0e-2, eps_rel=1.0e-2) # This works, but with suboptimal solution!  
+  # prob.solve(solver=cp.ECOS, verbose=False) # This also works
+  # # prob.solve(solver=cp.ECOS, verbose=False, abstol=1.0e-8, reltol=1.0e-8) # This also works
+  # # prob.solve(solver=cp.SCS, verbose=False) # This also works
+  # v = np.asarray(v.value).reshape(-1,1)
+  # # print(cp.installed_solvers())
 
-  v = cp.Variable(m)
+  """ CVXOPT solvers """
+  # # make sure P is symmetric
+  # cvx_P = (.5 * (P + P.T)).astype(np.double)
+  # cvx_q = -1*r.astype(np.double) 
+  # # add P and r to args
+  # cvx_Args = [cvxopt.matrix(cvx_P), cvxopt.matrix(cvx_q)] 
+  # # add Hv and hv to args (Hv*v<hv)
+  # cvx_Args.extend([cvxopt.matrix(Hv.astype(np.double)), cvxopt.matrix(hv.astype(np.double))])
+  # # add Cv and dv to args (Cv*v=dv)
+  # cvx_Args.extend([cvxopt.matrix(Cv.reshape(1,-1).astype(np.double)), cvxopt.matrix(dv.astype(np.double))])
+  # cvx_Sol = cvxopt.solvers.qp(*cvx_Args)
+  # # if 'optimal' not in sol['status']:
+  # #     return None
+  # v = np.array(cvx_Sol['x']).reshape(-1,1)
 
-  prob = cp.Problem(cp.Minimize(cp.quad_form(v, P) - 2*q.T @ v + q.T @ q), [Hv @ v <= hv, Cv @ v == dv])
-  # prob = cp.Problem(cp.Minimize(cp.quad_form(v, P) - 2*q.T @ v + q.T @ q), [Hv @ v <= hv])
-  prob.solve(solver=cp.OSQP, verbose=False, eps_abs=1.0e-2, eps_rel=1.0e-2) # This works!
-  # prob.solve(solver=cp.ECOS, verbose=False, abstol=1.0e-5, reltol=1.0e-5) # This also works
+  """ quadprog solvers """
+  # # make sure P is symmetric
+  # qp_P = (.5 * (P + P.T)).astype(np.double)
+  # qp_q = r.astype(np.double) 
+  # # with explicit constraints (sum of power shouldn't be changed)
+  # qp_A = Cv.reshape(1,-1);  qp_b = dv.reshape(-1,)
+  # qp_C = -1*np.vstack([qp_A, Hv]).T.astype(np.double);  qp_d = -1*np.hstack([qp_b, hv]).astype(np.double)
+  # meq = qp_A.shape[0]
+  # # # no equality constraint
+  # # qp_C = -Hv.T.astype(np.double); qp_d = -hv.astype(np.double)
+  # # meq = 0
+  # v= quadprog.solve_qp(qp_P, qp_q, qp_C, qp_d, meq)[0].reshape(-1,1)
 
-  # print("\nCVXPY: The optimal value is", prob.value)
-  # print("CVXPY: A solution v is", v.value)
-  v = np.asarray(v.value).reshape(-1,1)
+  """ qpsolvers """
+  qps_P = P.astype(np.double)
+  qps_q = -r.astype(np.double)
+  qps_G = Hv.astype(np.double)
+  qps_h = hv.astype(np.double)
+  qps_A = Cv.reshape(1,-1).astype(np.double)
+  qps_b = dv.reshape(-1,).astype(np.double)
 
-  if plot_OK:
-    # # plot out the feasible region of v(2-dimensional), so that Hv*v <= hv
-    # fig, ax = plt.subplots(figsize=(4,4))
-    # vertices = np.asarray(vertices).reshape(-1,2)
-    # print("vertices={}".format(vertices.shape))
-    # hull = ConvexHull(vertices)
-    # plt.fill(vertices[hull.vertices,0], vertices[hull.vertices,1],'peru',alpha=0.3)
-
-    # ax.scatter(r[0],r[1], s=80, marker='D', color='red', alpha=1)
-    # ax.scatter(v[0],v[1], s=80, marker='X', color='blue', alpha=1)
-    # ax.legend(['Admissible Region','Original Setpoint r','Adjusted Setpoint v'], loc='best')
-
-    # plt.xlabel("Centered Setpoint #0 (SES Power, MW)")
-    # plt.ylabel("Centered Setpoint #1 (BOP Power, MW)")
-    
-    # # ax.scatter(vertices[:,0], vertices[:,1], s=10, color='black', alpha=1)
-    # # for i in range(len(vertices)):
-    # #   plt.text(vertices[i,0], vertices[i,1], str(i))
-    # # plt.setp(ax, xlim=(-360, +160))
-    # # plt.setp(ax, ylim=(-15, +35))
-    # # # plt.show()
-    # fig.savefig('FeasibleRegion_{}.png'.format(datetime.now().strftime("%Y%m%d_%H%M%S_%f")),dpi=300)
-    # # time.sleep(1)
-    # plt.close()
-
-    # Save Hv, hv, r, v into mat file
-    mdic = {"A":Hv, "b":hv, "r":r, "v":v}
-    savemat('FeasibleRegion_Abrv_{}.mat'.format(datetime.now().strftime("%Y%m%d_%H%M%S_%f")),mdic)
-
+  # try a series of solvers, in order to ensure solution
+  try:
+    v = qpsolvers.solve_qp(qps_P, qps_q, qps_G, qps_h, qps_A, qps_b, solver='cvxopt').reshape(-1,1) # cvxopt uses interior point algorithm
+    print("QP Solution found by solver: cvxopt")
+  except:
+    try:
+      v = qpsolvers.solve_qp(qps_P, qps_q, qps_G, qps_h, qps_A, qps_b, solver='ecos').reshape(-1,1) # ecos uses interior point algorithm
+      print("QP Solution found by solver: ecos")
+    except:
+      try:
+        v = qpsolvers.solve_qp(qps_P, qps_q, qps_G, qps_h, qps_A, qps_b, solver='daqp').reshape(-1,1) # daqp uses active set algorithm
+        print("QP Solution found by solver: daqp")
+      except:
+        try:
+          v = qpsolvers.solve_qp(qps_P, qps_q, qps_G, qps_h, qps_A, qps_b, solver='quadprog').reshape(-1,1) # quadprog uses active set algorithm
+          print("QP Solution found by solver: quadprog")
+        except:
+          raise RuntimeError("Unable to find a solution v within the feasible region using the following QP solvers: cvxopt, ecos, daqp, quadprog.")
+  
   return v
     
 def computeTruncatedSingularValueDecomposition(X, truncationRank, full = False, conj = True):
@@ -3065,7 +3171,7 @@ def fun_DMDc(X1, X2, U, Y1, rankSVD):
   beta = X2.dot(Vt).dot(np.linalg.inv(R)).dot(Q.T)
   A = beta.dot(Ut[0:n, :].T)
   B = beta.dot(Ut[n:, :].T)
-  C = Y1.dot(scipy.linalg.pinv2(X1))
+  C = Y1.dot(scipy.linalg.pinv(X1))
 
   return A, B, C
 
@@ -3169,3 +3275,66 @@ def noredundant(A,b,baseLength):
   print("no-redundant A shape = {}, b shape = {}".format(A_cumulate.shape, b_cumulate.shape))
 
   return A_cumulate,b_cumulate,vertices
+
+def noRedund(A,b):
+  # A is a two-dimensional ndarray, shape = (N,nx)
+  # b is a one-dimensional ndarray, shape = (N,)
+  # A and b defines the linear constraints for vector x:
+  #       Ax <= b
+  # NOTES: (1) Unbounded feasible regions are permitted.
+  #        (2) This program requires that the feasible region have some
+  #            finite extent in all dimensions. For example, the feasible
+  #            regions cannot be a line segment in 2-D space, or a plane
+  #            in 3-D space.
+  #        (3) At least two dimensions are required.
+  #        (4) See function CON2VERT which is limited to bounded feasible
+  #            regions but also outputs vertices for the region.
+  #        (5) Written in MATLAB by Michael Kleder, June 2005; 
+  #            Implemented to python by Haoyu Wang, August 2023.
+
+  # first, attempt to locate a feasible point "c" that satisfies Ac<=b:
+  c,_residuals,_rank,_singularValues = np.linalg.lstsq(A,b,rcond=None)
+  # print("A rank = ",np.linalg.matrix_rank(A))
+  # print("c=", c)
+  
+  # if the "c" provided by least square solver is not "fully" inside Ac<b domain:
+  if not all(np.dot(A,c)<b):
+    c, fopt, _iter, _funcalls, warnflag = fmin(obj, c, args=(A,b), disp=False, full_output=True)
+    if warnflag !=0:
+      raise RuntimeError("Unable to locate a point within the interior of a feasible region.")
+  
+  # move polytope to contain origin
+  bk = b; # preserve
+  b = b - np.dot(A,c); # polytope A*x <= b now includes the origin
+
+  # obtain dual polytope vertices
+  B = np.tile(b.reshape(-1,1), A.shape[1])
+  D = np.divide(A,B)
+  
+  # generate a convex hull
+  hull = ConvexHull(D)
+  
+  # record which constraints generate points on the convex hull
+  nr = np.unique(hull.simplices.flatten())
+  
+  An=A[nr]
+  bn=bk[nr]
+
+  return An, bn
+
+def obj(c,*args):
+  # unload A and b from input arguments
+  A=args[0]
+  b=args[1]
+  
+  # calculate residuals
+  d = np.dot(A,c)-b
+  # exclude quasi-boundary points
+  k=(d>=-1e-15); 
+  # print(k)
+  d[k]=d[k]+1
+  # return 0 if each element of d is smaller than zero
+  # otherwise return the max element of d
+  d = max(np.append(d,0))
+  # print(d)
+  return d
