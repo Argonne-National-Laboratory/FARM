@@ -1784,7 +1784,7 @@ class FARM_Delta_FMU(Validator):
         descr=r"""The names of FMU output variables. It should be a list of strings separated by comma."""))
     component.addSub(InputData.parameterInputFactory('LearningSetpoints',contentType=InputTypes.InterpretedListType,
         descr=r"""The learning setpoints are used to find the nominal value and first sets of ABCD matrices. 
-        It should be a list of 2\+ floating numbers for component 1, then same amount of floating numbers for 
+        It should be a list of two or more floating numbers for component 1, then same amount of floating numbers for 
         component 2, etc. All numbers should be in one row and separated by comma."""))
     
     component.addSub(InputData.parameterInputFactory('NeighborSetpointsThreshold',contentType=InputTypes.FloatType,
@@ -1958,10 +1958,8 @@ class FARM_Delta_FMU(Validator):
       # Constraints
       y_min = np.asarray(self._unitInfo[unit]['Targets_Min'])
       y_max = np.asarray(self._unitInfo[unit]['Targets_Max'])
-
       # The width of moving window (seconds, centered at transient edge, for moving window DMDc)
       Moving_Window_Width = self._unitInfo[unit]['RollingWindowWidth']; #Tr_Update
-
       # Load the self learning hists, if any
       self._unitInfo[unit]['t_hist']=copy.deepcopy(self._unitInfo[unit]['t_hist_sl'])
       self._unitInfo[unit]['v_hist']=copy.deepcopy(self._unitInfo[unit]['v_hist_sl'])
@@ -1976,12 +1974,13 @@ class FARM_Delta_FMU(Validator):
       self._unitInfo[unit]['tTran_list']=copy.deepcopy(self._unitInfo[unit]['tTran_list_sl'])
 
       """ 2. Read FMU file to specify the physical model"""
+      # The name of FMU file, and the name of sub-systems 
       fmu_filename = self._unitInfo[unit]['FMUFile']
-      inputNameSeq = self._unitInfo[unit]['ComponentNamesForFMUInput']
-
-      # if state variable selection is not provided
-      if self._unitInfo[unit]['StateVariableSelectionXML'] is None:
+      inputNameSeq = self._unitInfo[unit]['ComponentNamesForFMUInput'] 
+      # Input / State / Output variable names, dimensions, and Time step (Tss)
+      if self._unitInfo[unit]['StateVariableSelectionXML'] is None: # if state variable selection is not provided
         print("******, Will do Self learning ******")
+        # fetch variable names from self._unitInfo[unit]
         inputVarNames = self._unitInfo[unit]['InputVarNames']
         stateVarNames = self._unitInfo[unit]['StateVarNames']
         outputVarNames = self._unitInfo[unit]['OutputVarNames']
@@ -1997,95 +1996,76 @@ class FARM_Delta_FMU(Validator):
         # convert para_array to para_list
         para_list = [(item.reshape(m,)).tolist() for item in para_array]
         eig_A_list = eig_A_array.tolist()
-        
-        # print("Tss", Tss, type(Tss)) # <class 'numpy.float64'>
-        # print("n", n, type(n)) # <class 'int'>
-        # print("m", m, type(m)) # <class 'int'>
-        # print("p", p, type(p)) # <class 'int'>
-        # print("para_array", para_array, type(para_array)) # <class 'numpy.ndarray'>
-        # print("para_list", para_list, type(para_list)) # 
-        
-        # print("UNorm_list",UNorm_list, type(UNorm_list)) # <class 'list'>
-        # print("XNorm_list",XNorm_list, type(XNorm_list)) # <class 'list'>
-        # print("YNorm_list",YNorm_list, type(YNorm_list)) # <class 'list'>
-        # # print("A_list",A_list)
-        # # print("B_list",B_list)
-        # # print("C_list",C_list)
-        # print("actuatorList",actuatorList, type(actuatorList)) # <class 'list'>
-        # print("stateList",stateList, type(stateList)) # <class 'list'>
-        # print("outputList",outputList, type(outputList)) # <class 'list'>
-        # print(a)
+        # fetch variable names from XML file
         inputVarNames = actuatorList
         stateVarNames = stateList
         outputVarNames = outputList
 
-      # read the model description
+      # Read the model description
       model_description = read_model_description(fmu_filename)
       
-      # collect the value references
+      # Collect all the value references (handles) from FMU
       vrs = {}
       for variable in model_description.modelVariables:
           vrs[variable.name] = variable.valueReference
       
-      # get the value references for the variables we want to get/set
-      # Input Power Setpoint (W)
+      # Get the value references (handle) for the variables we want to get/set
+      # Inputs: Power Setpoint
       vr_input = [vrs[item] for item in inputVarNames]
-      # State variables and dimension
+      # States: 
       vr_state = [vrs[item] for item in stateVarNames]
-      # Outputs: Power Generated (W), Turbine Pressure (Pa)
+      # Outputs: 
       vr_output = [vrs[item] for item in outputVarNames]
       
-      # extract the FMU
+      # Extract the FMU
       unzipdir = extract(fmu_filename)
       fmu = FMU2Slave(guid=model_description.guid,
                       unzipDirectory=unzipdir,
                       modelIdentifier=model_description.coSimulation.modelIdentifier,
                       instanceName='instance1')
       
-      # Initialize FMU
+      # Initialize FMU for self-learning stage
       T_delaystart = 0.
       fmu.instantiate()
       fmu.setupExperiment(startTime=T_delaystart)
       fmu.enterInitializationMode()
       fmu.exitInitializationMode()
       
-      # print(a)
-      window = int(Moving_Window_Width/Tss) # window width for DMDc
+      # Calculate the integer window width for DMDc
+      window = int(Moving_Window_Width/Tss) 
 
-      if self._unitInfo[unit]['StateVariableSelectionXML'] is None:
+      if self._unitInfo[unit]['StateVariableSelectionXML'] is None: # if the self learning was not done during SVS
         print("******, Self learning Starts ******")
+        
         """ 3 & 4. simulate the 1st setpoint, to get the steady state output """
         LearningSetpoints = self._unitInfo[unit]['LearningSetpoints']
         
         if len(self._unitInfo[unit]['t_hist']) == 0: # if self-learning was never run before  
-          t = -Tr_Update_sec*len(LearningSetpoints[0]) # t = -7200 s
-          t_idx = 0
+          t = -Tr_Update_sec*len(LearningSetpoints[0]) # negative values means self-learning stage
+          t_idx = 0 # this is the index for "LearningSetpoints"
 
           # Do the step-by-step simulation, from beginning to the first transient
           while t < -Tr_Update_sec*(len(LearningSetpoints[0])-1): # only the steady state value
             # Find the current r value
+            r = copy.deepcopy(LearningSetpoints[:,t_idx]) # <class 'numpy.ndarray'>, r.shape = (m,)
             
-            r = copy.deepcopy(LearningSetpoints[:,t_idx])
-            # print("t_idx=", t_idx, "t=", t, "r:", type(r), r)
+            # No reference governor for the first setpoint value, direct copy value from r
+            v = copy.deepcopy(r) # <class 'numpy.ndarray'>, v.shape = (m,)
             
-            # No reference governor for the first setpoint value yet
-            v = copy.deepcopy(r) # <class 'numpy.ndarray'>
-            # print("v:", type(v))
-            
-            # fetch y
-            y_fetch = np.asarray(fmu.getReal(vr_output))
-
-            # fetch v and x
+            # fetch v 
             v_fetch = np.asarray(v).reshape(m,)
-            x_fetch = np.asarray(fmu.getReal(vr_state))
-
+            
+            # fetch y, x 
+            y_fetch = np.asarray(fmu.getReal(vr_output)) # <class 'numpy.ndarray'>, y_fetch.shape = (p,)
+            x_fetch = np.asarray(fmu.getReal(vr_state)) # <class 'numpy.ndarray'>, x_fetch.shape = (n,)
+                                    
             # Save time, r, v, and y
             self._unitInfo[unit]['t_hist'].append(copy.deepcopy(t))         # Time
             self._unitInfo[unit]['v_hist'].append(copy.deepcopy(v_fetch))   # input v
             self._unitInfo[unit]['x_hist'].append(copy.deepcopy(x_fetch))   # state x
             self._unitInfo[unit]['y_hist'].append(copy.deepcopy(y_fetch))   # output y
 
-            # set the input. The input / state / output in FMU are real-world values
+            # Set the input. The input / state / output in FMU are real-world values (before nominal subtraction)
             for i in range(len(vr_input)):
               fmu.setReal([vr_input[i]], [v[i]]) # Note: fmu.setReal must take two lists as input
             # perform one step
@@ -2095,7 +2075,7 @@ class FARM_Delta_FMU(Validator):
             # time increment
             t = t + Tss
 
-          # fetch the steady-state y variables
+          # fetch the steady-state y variables, and save as 2-dimensional ndarray with the shape of (m/n/p, 1)
           v_0 = copy.deepcopy(v_fetch.reshape(m,-1))
           x_0 = copy.deepcopy(x_fetch.reshape(n,-1))
           y_0 = copy.deepcopy(y_fetch.reshape(p,-1))
@@ -2104,7 +2084,7 @@ class FARM_Delta_FMU(Validator):
           self._unitInfo[unit]['v_0_sl'] = copy.deepcopy(v_0)
           self._unitInfo[unit]['x_0_sl'] = copy.deepcopy(x_0)
           self._unitInfo[unit]['y_0_sl'] = copy.deepcopy(y_0)
-
+          # time index increment
           t_idx += 1
           
           # check if steady-state y is within the [ymin, ymax]
@@ -2138,34 +2118,30 @@ class FARM_Delta_FMU(Validator):
           print("^^^^ Steady State Summary End ^^^^")
           print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
           # Summary: at the end of Step 4, the nominal values are stored in u_0, x_0 and y_0. 
-          # print(a)
 
-          """ 5. Simulate the using the second r_ext value, to get the first guess of ABCD matrices """
-                        
+
+          """ 5. Simulate the using the second r_ext value, to get the first guess of ABCD matrices """                      
           while t_idx < LearningSetpoints[0].size:
             # extract the desired r vector
-            r_spec = LearningSetpoints[:,t_idx] # (2,)
-            # print("t_idx=",t_idx, ", r_spec=",r_spec)
+            r_spec = LearningSetpoints[:,t_idx] # <class 'numpy.ndarray'>, r.shape = (m,)            
 
             # Shift input
             i_input = 0.
-            while t < -Tr_Update_sec*(len(LearningSetpoints[0])-1-t_idx): # only the steady state value
-              # Find the current r value
-              
+            while t < -Tr_Update_sec*(len(LearningSetpoints[0])-1-t_idx): # the 2nd value in LearningSetpoints
+              # Find the current r value              
               r = copy.deepcopy(r_spec)
               
-              # No reference governor for the first setpoint value yet
+              # No reference governor during self-learning stage
               if i_input < m:
                 v[math.floor(i_input)]=copy.deepcopy(r[math.floor(i_input)])
                 i_input += 1/setpoints_shift_step
-                # print("t=",t,", v=", v )
               
               # fetch y
-              y_fetch = np.asarray(fmu.getReal(vr_output))
+              y_fetch = np.asarray(fmu.getReal(vr_output)) # <class 'numpy.ndarray'>, y_fetch.shape = (p,)
 
               # fetch v and x
               v_fetch = np.asarray(v).reshape(m,)
-              x_fetch = np.asarray(fmu.getReal(vr_state))
+              x_fetch = np.asarray(fmu.getReal(vr_state)) # <class 'numpy.ndarray'>, x_fetch.shape = (n,)
 
               # Save time, r, v, and y
               self._unitInfo[unit]['t_hist'].append(copy.deepcopy(t))         # Time
@@ -2173,7 +2149,7 @@ class FARM_Delta_FMU(Validator):
               self._unitInfo[unit]['x_hist'].append(copy.deepcopy(x_fetch))   # state x
               self._unitInfo[unit]['y_hist'].append(copy.deepcopy(y_fetch))   # output y
               
-              # set the input. The input / state / output in FMU are real-world values
+              # Set the input. The input / state / output in FMU are real-world values (before nominal subtraction)
               for i in range(len(vr_input)):
                 fmu.setReal([vr_input[i]], [v[i]]) # Note: fmu.setReal must take two lists as input
               # perform one step
@@ -2186,41 +2162,34 @@ class FARM_Delta_FMU(Validator):
             # Collect data for DMDc
             winIdxStart = max(0, t_idx*int(Tr_Update_sec/Tss)-math.floor(window/2))
             winIdxEnd = t_idx*int(Tr_Update_sec/Tss)+math.floor(window/2)
-            t_window = np.asarray(self._unitInfo[unit]['t_hist'][winIdxStart:winIdxEnd]).reshape(1,-1)
-            v_window = np.asarray(self._unitInfo[unit]['v_hist'][winIdxStart:winIdxEnd]).reshape(-1,m).T
-            x_window = np.asarray(self._unitInfo[unit]['x_hist'][winIdxStart:winIdxEnd]).T
-            y_window = np.asarray(self._unitInfo[unit]['y_hist'][winIdxStart:winIdxEnd]).T 
+            t_window = np.asarray(self._unitInfo[unit]['t_hist'][winIdxStart:winIdxEnd]).reshape(1,-1)    # (1, window)
+            v_window = np.asarray(self._unitInfo[unit]['v_hist'][winIdxStart:winIdxEnd]).reshape(-1,m).T  # (m, window)
+            x_window = np.asarray(self._unitInfo[unit]['x_hist'][winIdxStart:winIdxEnd]).T                # (n, window)
+            y_window = np.asarray(self._unitInfo[unit]['y_hist'][winIdxStart:winIdxEnd]).T                # (p, window)
             # print("Window Start = {}, Window End = {}".format(winIdxStart, winIdxEnd))
-            # print("t_window=",t_window.shape,"\n", t_window) # (2, 180)
-            # print("v_window=",v_window.shape,"\n", v_window) # (2, 180)
-            # print("x_window=",x_window.shape,"\n", x_window) # (2, 180)
-            # print("y_window=",y_window.shape,"\n", y_window) # (2, 180)
             # print(a)
-
             
-            # Do the DMDc, and return ABCD matrices
+            # Do the DMDc, and return ABCD matrices during self-learning stage
             U1 = v_window[:,0:-1]-v_0; X1 = x_window[:, 0:-1]-x_0; X2 = x_window[:, 1:]-x_0; Y1 = y_window[:, 0:-1]-y_0
 
-            # if U1 has any dimension unchanged within the window, DMDc will return A matrix with eigenvalue of 1.
-            # Skip DMDc if no U1 has constant components.
-            flagNoTransient = False
+            # Skip DMDc if no U1 has constant components. (Otherwise DMDc will have singulatiry error)
+            flagNoTransient = False # initialize the flag
             for item in U1: 
               if abs(np.max(item) - np.min(item)) < self._unitInfo[unit]['NeighborSetpointsThreshold']: # if there is constant setpoint, cannot run DMDc
                 flagNoTransient = True
 
-            Do_DMDc = False
+            Do_DMDc = False # initialize the flag for DMDc
             if not flagNoTransient: # if transient found within this window
-              if len(self._unitInfo[unit]['para_list'])==0:
-                # if para_list is empty, do DMDc
+              if len(self._unitInfo[unit]['para_list'])==0: # if para list is empty (DMDc never done before), do DMDc
                 Do_DMDc = True
-              else:
+              else: # if para list is not empty (DMDc done before)
                 CloseParaExist = False; nearest_para=[]
-                for item in self._unitInfo[unit]['para_list']:
+                for item in self._unitInfo[unit]['para_list']: # check each entry of para list and see if it's too close to current v
                   if np.linalg.norm(np.asarray(item).reshape(-1,)-v_window[:,-1].reshape(-1,)) < self._unitInfo[unit]['NeighborSetpointsThreshold']:
                     CloseParaExist = True
                     nearest_para = item
 
-                if not CloseParaExist:
+                if not CloseParaExist: # if no close parameter exists, do DMDc
                   Do_DMDc = True
 
             if Do_DMDc:
@@ -2306,7 +2275,6 @@ class FARM_Delta_FMU(Validator):
         if not inConstraint:
           exitMessage = """\n\tERROR:  No proper steady state output is provided in the state variable selection XML file. \n"""
 
-
         # 2. save the A_list, B_list, C_list, para_list
         self._unitInfo[unit]['A_list'] = copy.deepcopy(A_list)
         self._unitInfo[unit]['B_list'] = copy.deepcopy(B_list)
@@ -2316,7 +2284,7 @@ class FARM_Delta_FMU(Validator):
         self._unitInfo[unit]['t_idx_sl'] = 0
       
 
-      """ 6. Simulate from the third r_ext value using CG, and update the ABCD matrices as it goes """
+      """ 6. Simulate the Dispatch stage using CG, and update the ABCD matrices as it goes """
       # Initialization of time, and retrieve of norminal values
       t = 0
       # store v_0, x_0 and y_0 into self._unitInfo
@@ -2339,7 +2307,9 @@ class FARM_Delta_FMU(Validator):
       fmu.setupExperiment(startTime=T_delaystart)
       fmu.enterInitializationMode()
       fmu.exitInitializationMode()
-      x_fetch = np.asarray(fmu.getReal(vr_state)) # shape = (6,)
+
+      # fetch the initial state
+      x_fetch = np.asarray(fmu.getReal(vr_state)) # shape = (m,)
 
       # loop through the time index (tidx) and time in "times", extract the dispatched setpoint
       for tidx, time in enumerate(times):
@@ -2514,7 +2484,9 @@ class FARM_Delta_FMU(Validator):
         print("HaoyuCGSummary, " + str(unit) + ", t, " + str(t) + ", Profile, " + str(profile_id) + 
         ", r, " + ', '.join([str(num) for num in r]) + ", v, " + ', '.join([str(num) for num in v_adj]))
 
-        
+        # TODO: replace this line with the option from input file
+        simulateFMUDuringDispatch = True
+
         # Simulate the FMU using this v_adj, Update x_sys_internal, and keep record in v_hist and yp_hist within this hour
         # Shift input
         i_input = 0.
@@ -2527,12 +2499,16 @@ class FARM_Delta_FMU(Validator):
               v[math.floor(i_input)]=copy.deepcopy(v_adj[math.floor(i_input)])
               i_input += 1/setpoints_shift_step
           
-          # fetch y
-          y_fetch = np.asarray(fmu.getReal(vr_output))
-
-          # fetch v and x
+          # fetch v 
           v_fetch = np.asarray(v).reshape(m,)
-          x_fetch = np.asarray(fmu.getReal(vr_state))
+          
+          # fetch y, x 
+          if simulateFMUDuringDispatch:
+            y_fetch = np.asarray(fmu.getReal(vr_output)) # <class 'numpy.ndarray'>, y_fetch.shape = (p,)
+            x_fetch = np.asarray(fmu.getReal(vr_state)) # <class 'numpy.ndarray'>, x_fetch.shape = (n,)
+          else:
+            y_fetch = (np.dot(C_d, x_fetch.reshape(-1,1)-x_0)+y_0).reshape(-1,)
+            x_fetch = x_fetch
           
           # Save time, r, v, and y
           self._unitInfo[unit]['t_hist'].append(copy.deepcopy(t))         # Time
@@ -2540,12 +2516,15 @@ class FARM_Delta_FMU(Validator):
           self._unitInfo[unit]['x_hist'].append(copy.deepcopy(x_fetch))   # state x
           self._unitInfo[unit]['y_hist'].append(copy.deepcopy(y_fetch))   # output y
           
-          # set the input. The input / state / output in FMU are real-world values
-          for i in range(len(vr_input)):
-            fmu.setReal([vr_input[i]], [v[i]]) # Note: fmu.setReal must take two lists as input
-          # perform one step
-          fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
-          # print("Wall Time = {}, ".format(datetime.now().strftime("%Y_%m_%d_%H:%M:%S:%f")),"FMU t = ",t)
+          if simulateFMUDuringDispatch:
+            # set the input. The input / state / output in FMU are real-world values
+            for i in range(len(vr_input)):
+              fmu.setReal([vr_input[i]], [v[i]]) # Note: fmu.setReal must take two lists as input
+            # perform one step
+            fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
+            # print("Wall Time = {}, ".format(datetime.now().strftime("%Y_%m_%d_%H:%M:%S:%f")),"FMU t = ",t)
+          else:
+            x_fetch = (np.dot(A_d, x_fetch.reshape(-1,1)-x_0) + np.dot(B_d, v_fetch.reshape(-1,1)-v_0)).reshape(-1,)
           
           # time increment
           t = t + Tss

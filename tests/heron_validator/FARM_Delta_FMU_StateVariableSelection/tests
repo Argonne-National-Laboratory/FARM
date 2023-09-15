@@ -9,7 +9,7 @@
       output = 'stateVarSelection/svs_new_inputFile.xml'
     [../]
   [../]
-  [./HERONvalidatorFARMdeltaFMU_WindowsOnly]
+  [./HERONvalidatorFARMdeltaFMU_svs_WindowsOnly]
     type = HeronIntegration
     input = heron_input_FARM_deltaFMU_BOPSES.xml
     skip_if_OS = Linux, mac, SunOS
