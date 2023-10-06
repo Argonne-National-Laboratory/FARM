@@ -1,10 +1,10 @@
 <dependencies>
   <main>
-    <fmpy/>
-    <!-- <cvxpy/> -->
-    <cvxopt source="pip"/>
-    <quadprog source="pip"/>
-    <qpsolvers source="pip"/>
+    <fmpy source='pip'/>
+    <cvxpy/>
+    <cvxopt source='pip'/>
+    <quadprog source='pip'/>
+    <qpsolvers source='forge'/>
   </main>
 
 </dependencies>
