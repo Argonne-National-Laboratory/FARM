@@ -26,6 +26,7 @@ from _utils import get_raven_loc, get_heron_loc, get_farm_loc
 from validators.Validator import Validator
 from scipy.io import savemat
 
+import cvxpy as cp
 import cvxopt
 import quadprog
 import qpsolvers
@@ -2388,6 +2389,7 @@ class FARM_Delta_FMU(Validator):
         print("Hv_DMDc={}, hv_DMDc={}".format(Hv_DMDc.shape, hv_DMDc.shape))
 
         Hv_Redund = Hv_DMDc; hv_Redund = hv_DMDc
+        # Hv_noRedund = Hv_DMDc; hv_noRedund = hv_DMDc
         Hv_noRedund, hv_noRedund = noRedund(Hv_Redund, hv_Redund)
         i=0
         print('Trial #{}, {} constraints left.'.format(i,hv_noRedund.shape[0]))
@@ -2439,6 +2441,7 @@ class FARM_Delta_FMU(Validator):
           print("Hv_DMDc={}, hv_DMDc={}".format(Hv_DMDc.shape, hv_DMDc.shape))
 
           Hv_Redund = Hv_DMDc; hv_Redund = hv_DMDc
+          # Hv_noRedund = Hv_DMDc; hv_noRedund = hv_DMDc
           Hv_noRedund, hv_noRedund = noRedund(Hv_Redund, hv_Redund)
           i=0
           print('Trial #{}, {} constraints left.'.format(i,hv_noRedund.shape[0]))
@@ -2499,16 +2502,20 @@ class FARM_Delta_FMU(Validator):
               v[math.floor(i_input)]=copy.deepcopy(v_adj[math.floor(i_input)])
               i_input += 1/setpoints_shift_step
           
-          # fetch v 
+          # fetch v: real world values
           v_fetch = np.asarray(v).reshape(m,)
           
-          # fetch y, x 
+          # fetch y, x: real world values
           if simulateFMUDuringDispatch:
             y_fetch = np.asarray(fmu.getReal(vr_output)) # <class 'numpy.ndarray'>, y_fetch.shape = (p,)
             x_fetch = np.asarray(fmu.getReal(vr_state)) # <class 'numpy.ndarray'>, x_fetch.shape = (n,)
           else:
             y_fetch = (np.dot(C_d, x_fetch.reshape(-1,1)-x_0)+y_0).reshape(-1,)
             x_fetch = x_fetch
+          # print("t=", t, "v_fetch", v_fetch.shape, v_fetch)
+          # print("t=", t, "x_fetch", x_fetch.shape, x_fetch)
+          # print("t=", t, "y_fetch", y_fetch.shape, y_fetch)
+          # print("\n")
           
           # Save time, r, v, and y
           self._unitInfo[unit]['t_hist'].append(copy.deepcopy(t))         # Time
@@ -2524,7 +2531,7 @@ class FARM_Delta_FMU(Validator):
             fmu.doStep(currentCommunicationPoint=t, communicationStepSize=Tss)
             # print("Wall Time = {}, ".format(datetime.now().strftime("%Y_%m_%d_%H:%M:%S:%f")),"FMU t = ",t)
           else:
-            x_fetch = (np.dot(A_d, x_fetch.reshape(-1,1)-x_0) + np.dot(B_d, v_fetch.reshape(-1,1)-v_0)).reshape(-1,)
+            x_fetch = (np.dot(A_d, x_fetch.reshape(-1,1)-x_0) + np.dot(B_d, v_fetch.reshape(-1,1)-v_0)+x_0).reshape(-1,)
           
           # time increment
           t = t + Tss
@@ -2571,7 +2578,7 @@ class FARM_Delta_FMU(Validator):
             initializationCond = True
 
         Do_DMDc = False
-        if not flagNoTransient and not CloseParaExist and not initializationCond: # if transient found within this window
+        if not flagNoTransient and not CloseParaExist and not initializationCond and simulateFMUDuringDispatch: # if transient found within this window
           Do_DMDc = True
 
         if Do_DMDc:
