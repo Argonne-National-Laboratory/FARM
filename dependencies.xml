@@ -1,9 +1,9 @@
 <dependencies>
   <main>
-    <fmpy source='pip'/>
+    <fmpy source='pip'>0.3.16</fmpy>
     <cvxpy/>
-    <cvxopt source='pip'/>
-    <quadprog source='pip'/>
+    <cvxopt source='forge'/>
+    <quadprog source='forge'/>
     <qpsolvers source='forge'/>
   </main>
 
