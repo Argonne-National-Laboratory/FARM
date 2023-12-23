@@ -7,6 +7,7 @@
       type = OrderedCSV
       output = 'Sweep_Runs_o/sweep.csv'
       windows_gold = 'Sweep_Runs_o/Windows_sweep.csv'
+      mac_gold = 'Sweep_Runs_o/Mac_sweep.csv'
       zero_threshold = 1e-6
       rel_err = 1e0
     [../]
