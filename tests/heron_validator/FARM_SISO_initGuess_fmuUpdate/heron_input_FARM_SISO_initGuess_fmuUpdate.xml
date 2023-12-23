@@ -1,0 +1,134 @@
+<HERON>
+  <TestInfo>
+    <name>validator</name>
+    <author>haoyuwang</author>
+    <created>2022-01-10</created>
+    <description>
+      Tests using a parameterized validator to modify behavior of a dispatch optimizer. Uses the "FARM_Beta" validator.
+    </description>
+    <classesTested>HERON</classesTested>
+  </TestInfo>
+
+  <Case name="Sweep_Runs">
+    <mode>sweep</mode>
+    <num_arma_samples>3</num_arma_samples>
+    <time_discretization>
+      <time_variable>Time</time_variable>
+      <end_time>11</end_time>
+      <num_steps>12</num_steps>
+    </time_discretization>
+    <economics>
+      <ProjectTime>1</ProjectTime>
+      <DiscountRate>0.08</DiscountRate>
+      <tax>0.0</tax>
+      <inflation>0.0</inflation>
+      <verbosity>50</verbosity>
+    </economics>
+    <dispatcher>
+      <pyomo>
+        <rolling_window_length>200</rolling_window_length>
+      </pyomo>
+    </dispatcher>
+    
+    <validator>
+      <FARM_Gamma_FMU>
+        <ComponentForFARM name="BOP">
+          <!-- 1. State Variable Selection XML file. If exist, self-learning will be skipped. Else, run FMU for self-learning. -->
+          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/stateVarSelection/stateVarSelectionTemplate/simulatedDataBOP/DMDcCxCoeff_5400s.xml</StateVariableSelectionXML>
+          <!-- 2. FMU file. Besides self learning, can be used for online matrix update if exist and used with <OnlineMatrixUpdate>. -->
+          <FMUFile>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/FMUs/BOP_empty_MWinput.fmu</FMUFile>
+          <FMUSimulationStep> 10. </FMUSimulationStep>
+          <InputVarNames> BOP_Demand_MW </InputVarNames>
+          <StateVarNames> BOP.steamTurbine.portHP.p, BOP.powerSensor.power, sinkElec.port.W</StateVarNames>
+          <OutputVarNames> Electric_Power, Turbine_Pressure </OutputVarNames>
+          <LearningSetpoints> 1100., 1150. </LearningSetpoints>
+          <OnlineMatrixUpdate>True</OnlineMatrixUpdate>
+          <NeighborSetpointsThreshold> 1.0 </NeighborSetpointsThreshold>
+          <OpConstraintsUpper> 12.0E8, 53.8E5 </OpConstraintsUpper>
+          <OpConstraintsLower> 10.0E8, 51.8E5 </OpConstraintsLower>
+          <RollingWindowWidth> 1800 </RollingWindowWidth>
+        </ComponentForFARM>
+        <ComponentForFARM name="SES">
+          <!-- 1. State Variable Selection XML file. If exist, self-learning will be skipped. Else, run FMU for self-learning. -->
+          <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/stateVarSelection/stateVarSelectionTemplate/simulatedDataSES/DMDcCxCoeff_5400s.xml</StateVariableSelectionXML>
+          <!-- 2. FMU file. Besides self learning, can be used for online matrix update if exist and used with <OnlineMatrixUpdate>. -->
+          <FMUFile>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/FMUs/SES_empty_MWinput.fmu</FMUFile>
+          <FMUSimulationStep> 10. </FMUSimulationStep>
+          <InputVarNames> SES_Demand_MW </InputVarNames>
+          <StateVarNames> SES.CS.feedback_W_gen.u2 SES.ED.sensorBus.W_gen </StateVarNames>
+          <OutputVarNames> Electric_Power, Firing_Temperature </OutputVarNames>
+          <LearningSetpoints> 46., 18.</LearningSetpoints>
+          <OnlineMatrixUpdate>True</OnlineMatrixUpdate>
+          <NeighborSetpointsThreshold> 1.0 </NeighborSetpointsThreshold>
+          <OpConstraintsUpper> 50.0E6, 1673. </OpConstraintsUpper>
+          <OpConstraintsLower> 13.5E6, 1089. </OpConstraintsLower>
+          <RollingWindowWidth> 1800 </RollingWindowWidth>
+        </ComponentForFARM>
+      </FARM_Gamma_FMU>
+    </validator>
+  </Case>
+
+  <Components>
+    <Component name="BOP">
+      <produces resource="electricity" dispatch="independent">
+        <capacity resource="electricity">
+          <!-- <fixed_value>1500</fixed_value> -->
+          <sweep_values> 1500,1510</sweep_values>
+        </capacity>
+      </produces>
+      <economics>
+        <lifetime>30</lifetime>
+		    <CashFlow name="e_prod" type="repeating" taxable='True' inflation='none' mult_target='False'>
+          <driver>
+			      <Function method="electric_prod">transfers</Function>
+          </driver>
+          <reference_price>
+            <fixed_value>-100</fixed_value>
+          </reference_price>
+        </CashFlow>
+      </economics>
+    </Component>
+    <Component name="SES">
+      <produces resource="electricity" dispatch="independent">
+        <capacity resource="electricity">
+          <fixed_value>100</fixed_value>
+        </capacity>
+      </produces>
+      <economics>
+        <lifetime>30</lifetime>
+        <CashFlow name="e_prod" type="repeating" taxable='True' inflation='none' mult_target='False'>
+          <driver>
+            <Function method="electric_prod">transfers</Function>
+          </driver>
+          <reference_price>
+            <fixed_value>-200</fixed_value>
+          </reference_price>
+        </CashFlow>
+      </economics>
+    </Component>
+    <Component name="electr_market">
+      <demands resource="electricity" dispatch="fixed">
+        <capacity resource="electricity">   
+          <ARMA variable="Signal">flex</ARMA>
+          <multiplier>1</multiplier>
+        </capacity>
+      </demands>
+      <economics>
+        <lifetime>30</lifetime>
+        <CashFlow name="e_sales" type="repeating" taxable='True' inflation='none' mult_target='False'>
+          <driver>
+            <Function method="electric_consume">transfers</Function>
+            <!-- <resource multiplier="-1" absolute="True">electricity</resource> -->
+          </driver>
+          <reference_price>
+            <fixed_value>-1000</fixed_value>
+          </reference_price>
+        </CashFlow>
+      </economics>
+    </Component>
+  </Components>
+  <DataGenerators>
+    <ARMA name='flex' variable="Signal">%FARM%/tests/heron_validator/ARMA/ARMA_Sine_12h/arma_Sine_12h.pk</ARMA>
+    <Function name="transfers">transfers.py</Function>
+  </DataGenerators>
+</HERON>

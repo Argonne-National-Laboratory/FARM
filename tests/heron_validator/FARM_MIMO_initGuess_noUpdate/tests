@@ -1,0 +1,15 @@
+[Tests]
+  [./HERONvalidator_FARM_MIMO_initGuess_noUpdate]
+    type = HeronIntegration
+    input = heron_input_FARM_MIMO_initGuess_noUpdate.xml
+    max_time = 1000
+    [./csv]
+      type = OrderedCSV
+      output = 'Sweep_Runs_o/sweep.csv'
+      windows_gold = 'Sweep_Runs_o/Windows_sweep.csv'
+      zero_threshold = 1e-6
+      rel_err = 1e0
+    [../]
+  [../]  
+
+[]

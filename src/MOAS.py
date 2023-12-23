@@ -19,15 +19,15 @@ import numpy as np
 import xml.etree.ElementTree as ET
 
 def fun_GasTurb_ABCD_u(u,A_Hist,B_Hist,C_Hist,D_Hist,u0_Hist,y0_Hist):
-    # need to convert u0_hist to a one-row array
-    result = np.where(u0_Hist.reshape(1, -1)[0] <= u)
-    # "result" is a tuple. need to extract the array within and find the index.
-    idx = result[0][-1]
-    # print(idx)
-    A_d = A_Hist[:, :, idx];    B_d = B_Hist[:, :, idx]
-    C_d = C_Hist[:, :, idx];    D_d = D_Hist[:, :, idx]
-    u0 = u0_Hist[:, idx];    y0 = y0_Hist[:, idx]
-    return A_d, B_d, C_d, D_d, u0, y0
+  # need to convert u0_hist to a one-row array
+  result = np.where(u0_Hist.reshape(1, -1)[0] <= u)
+  # "result" is a tuple. need to extract the array within and find the index.
+  idx = result[0][-1]
+  # print(idx)
+  A_d = A_Hist[:, :, idx];    B_d = B_Hist[:, :, idx]
+  C_d = C_Hist[:, :, idx];    D_d = D_Hist[:, :, idx]
+  u0 = u0_Hist[:, idx];    y0 = y0_Hist[:, idx]
+  return A_d, B_d, C_d, D_d, u0, y0
 
 def fun_DMDc(X1,X2,U,Y1,A_0,B_0,C_0,k,nr):
     # Input dimensions:
