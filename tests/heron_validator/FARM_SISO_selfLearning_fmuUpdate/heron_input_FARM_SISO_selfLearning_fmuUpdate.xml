@@ -31,20 +31,40 @@
     </dispatcher>
     
     <validator>
-      <FARM_Beta>
+      <FARM_SISO>
         <ComponentForFARM name="BOP">
-          <MatricesFile>%FARM%/tests/heron_validator/FARM_Beta/ABCD_Matrices/DMDcCxCoeff_BOP_para.xml</MatricesFile>
+          <!-- 1. State Variable Selection XML file. If exist, self-learning will be skipped. Else, run FMU for self-learning. -->
+          <!-- <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/stateVarSelection/stateVarSelectionTemplate/simulatedDataBOP/DMDcCxCoeff_5400s.xml</StateVariableSelectionXML> -->
+          <!-- 2. FMU file. Besides self learning, can be used for online matrix update if exist and used with <OnlineMatrixUpdate>. -->
+          <FMUFile>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/FMUs/BOP_empty_MWinput.fmu</FMUFile>
+          <FMUSimulationStep> 10. </FMUSimulationStep>
+          <InputVarNames> BOP_Demand_MW </InputVarNames>
+          <StateVarNames> BOP.steamTurbine.portHP.p, BOP.powerSensor.power, sinkElec.port.W</StateVarNames>
+          <OutputVarNames> Electric_Power, Turbine_Pressure </OutputVarNames>
+          <LearningSetpoints> 1100., 1150. </LearningSetpoints>
+          <OnlineMatrixUpdate>True</OnlineMatrixUpdate>
+          <NeighborSetpointsThreshold> 1.0 </NeighborSetpointsThreshold>
           <OpConstraintsUpper> 12.0E8, 53.8E5 </OpConstraintsUpper>
           <OpConstraintsLower> 10.0E8, 51.8E5 </OpConstraintsLower>
-          <!-- <InitialState> 6.50034120e+07 </InitialState> -->
+          <RollingWindowWidth> 1800 </RollingWindowWidth>
         </ComponentForFARM>
         <ComponentForFARM name="SES">
-          <MatricesFile>%FARM%/tests/heron_validator/FARM_Beta/ABCD_Matrices/DMDcCxCoeff_SES_para.xml</MatricesFile>
+          <!-- 1. State Variable Selection XML file. If exist, self-learning will be skipped. Else, run FMU for self-learning. -->
+          <!-- <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/stateVarSelection/stateVarSelectionTemplate/simulatedDataSES/DMDcCxCoeff_5400s.xml</StateVariableSelectionXML> -->
+          <!-- 2. FMU file. Besides self learning, can be used for online matrix update if exist and used with <OnlineMatrixUpdate>. -->
+          <FMUFile>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/FMUs/SES_empty_MWinput.fmu</FMUFile>
+          <FMUSimulationStep> 10. </FMUSimulationStep>
+          <InputVarNames> SES_Demand_MW </InputVarNames>
+          <StateVarNames> SES.CS.feedback_W_gen.u2 SES.ED.sensorBus.W_gen </StateVarNames>
+          <OutputVarNames> Electric_Power, Firing_Temperature </OutputVarNames>
+          <LearningSetpoints> 46., 18.</LearningSetpoints>
+          <OnlineMatrixUpdate>True</OnlineMatrixUpdate>
+          <NeighborSetpointsThreshold> 1.0 </NeighborSetpointsThreshold>
           <OpConstraintsUpper> 50.0E6, 1673. </OpConstraintsUpper>
           <OpConstraintsLower> 13.5E6, 1089. </OpConstraintsLower>
-          <!-- <InitialState> 5.00000000e+06 </InitialState> -->
+          <RollingWindowWidth> 1800 </RollingWindowWidth>
         </ComponentForFARM>
-      </FARM_Beta>
+      </FARM_SISO>
     </validator>
   </Case>
 
@@ -87,16 +107,11 @@
       </economics>
     </Component>
     <Component name="electr_market">
-      <demands resource="electricity" dispatch="dependent">
+      <demands resource="electricity" dispatch="fixed">
         <capacity resource="electricity">   
-          <fixed_value>-1e5</fixed_value>
-          <!-- <ARMA variable="Signal">flex</ARMA> -->
-          <!-- <multiplier>1</multiplier> -->
-        </capacity>
-        <minimum>
           <ARMA variable="Signal">flex</ARMA>
           <multiplier>1</multiplier>
-        </minimum>
+        </capacity>
       </demands>
       <economics>
         <lifetime>30</lifetime>

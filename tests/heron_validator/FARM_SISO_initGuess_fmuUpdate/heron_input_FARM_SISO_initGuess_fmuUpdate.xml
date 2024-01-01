@@ -31,7 +31,7 @@
     </dispatcher>
     
     <validator>
-      <FARM_Gamma_FMU>
+      <FARM_SISO>
         <ComponentForFARM name="BOP">
           <!-- 1. State Variable Selection XML file. If exist, self-learning will be skipped. Else, run FMU for self-learning. -->
           <StateVariableSelectionXML>%FARM%/tests/heron_validator/FARM_SISO_StateVarSelect/stateVarSelection/stateVarSelectionTemplate/simulatedDataBOP/DMDcCxCoeff_5400s.xml</StateVariableSelectionXML>
@@ -64,7 +64,7 @@
           <OpConstraintsLower> 13.5E6, 1089. </OpConstraintsLower>
           <RollingWindowWidth> 1800 </RollingWindowWidth>
         </ComponentForFARM>
-      </FARM_Gamma_FMU>
+      </FARM_SISO>
     </validator>
   </Case>
 
