@@ -1,0 +1,12 @@
+[Tests]
+  [./svs_Template_create_FARM_MIMO_WindowsOnly]
+    type = RavenPython
+    input = stateVarSelection/svs_maker.py
+    skip_if_OS = Linux, mac, SunOs
+    max_time = 1000
+    [./createInput]
+      type = XML
+      output = 'stateVarSelection/svs_new_inputFile.xml'
+    [../]
+  [../]
+[]

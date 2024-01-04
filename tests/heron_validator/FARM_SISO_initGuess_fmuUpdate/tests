@@ -1,0 +1,14 @@
+[Tests]
+  [./HERONvalidator_FARM_SISO_initGuess_fmuUpdate_WindowsOnly]
+    type = HeronIntegration
+    input = heron_input_FARM_SISO_initGuess_fmuUpdate.xml
+    skip_if_OS = Linux, mac, SunOs
+    max_time = 1000
+    [./csv]
+      type = OrderedCSV
+      output = 'Sweep_Runs_o/sweep.csv'
+      zero_threshold = 1e-6
+      rel_err = 1e0
+    [../]
+  [../]
+[]
