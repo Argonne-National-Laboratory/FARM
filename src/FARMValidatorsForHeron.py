@@ -1814,6 +1814,9 @@ class FARM_MIMO(Validator):
         descr=r"""The names of components contained in this FMU. The sequence should line up with the items in
          \xmlNode{InputVarNames} and the names should match the component's name in \xmlNode{Components}.
         It should be a list of strings separated by comma."""))
+    component.addSub(InputData.parameterInputFactory('SetpointWeight',contentType=InputTypes.InterpretedListType,
+        descr=r"""The weights for all the set-points in this component. It should be a list of
+        floating numbers or integers separated by comma."""))
     component.addSub(InputData.parameterInputFactory('setpointsShiftStep',contentType=InputTypes.IntegerType,
         descr=r"""The time shift between adjacent setpoint leading edges, measured in steps. It should be an integer."""))
     
@@ -1874,6 +1877,7 @@ class FARM_MIMO(Validator):
       svsXMLFile = None
       fmuFile = None
       ComponentNamesForFMUInput = None
+      SetpointWeight = None
       setpointsShiftStep = 0
       FMUSimulationStep = None
       InputVarNames = None
@@ -1917,6 +1921,9 @@ class FARM_MIMO(Validator):
         
         if farmEntry.getName() == "ComponentNamesForFMUInput":
           ComponentNamesForFMUInput = farmEntry.value
+
+        if farmEntry.getName() == "SetpointWeight":
+          SetpointWeight = farmEntry.value
         
         if farmEntry.getName() == "setpointsShiftStep":
           setpointsShiftStep = farmEntry.value  
@@ -1964,6 +1971,7 @@ class FARM_MIMO(Validator):
           'StateVariableSelectionXML':svsXMLFile,
           'FMUFile':fmuFile,
           'ComponentNamesForFMUInput':ComponentNamesForFMUInput,
+          'SetpointWeight':SetpointWeight,
           'setpointsShiftStep':setpointsShiftStep,
           'FMUSimulationStep':FMUSimulationStep,
           'InputVarNames':InputVarNames,
@@ -2086,6 +2094,11 @@ class FARM_MIMO(Validator):
         inputVarNames = actuatorList
         stateVarNames = stateList
         outputVarNames = outputList
+
+      if self._unitInfo[unit]['SetpointWeight'] is None:
+        weight = np.identity(m)
+      else:
+        weight = np.diag(np.asarray(self._unitInfo[unit]['SetpointWeight']))
       
       if fmu_filename is not None:
         print("******, Initiating FMU ******")
@@ -2504,7 +2517,7 @@ class FARM_MIMO(Validator):
         
         # calculate v_RG using command governor
         # print("Tentative r_value =\n",r_value)    
-        v_CG = fun_CG_MIMO(r.reshape(m,-1)-v_0, Hv_noRedund, hv_noRedund) # 
+        v_CG = fun_CG_MIMO(r.reshape(m,-1)-v_0, weight, Hv_noRedund, hv_noRedund) # 
         print("v = ",(v_CG+v_0).reshape(-1,))
         profile_id_r = copy.deepcopy(profile_id)
 
@@ -3093,7 +3106,7 @@ def fun_2nd_gstep_calc(x, Hm, hm, A_m, B_m, g):
   v_min = np.asarray(max(v_bt))
   return v_max, v_min
 
-def fun_CG_MIMO(r, Hv, hv):
+def fun_CG_MIMO(r, P, Hv, hv):
   # print("x=", x, "\nr=", r)
   # print("x=", x, "\nr=", r, "\nH=", H, "\nh=", h)
   m = len(r)
@@ -3101,7 +3114,14 @@ def fun_CG_MIMO(r, Hv, hv):
   # linear equality for electrical power dispatch problem
   Cv = np.ones(m);  dv = np.sum(r)
   # define the P matrix for quad form v.T * P * v
-  P = np.identity(m)
+  # P = np.identity(m)
+  # define the Q matrix for linear term Q * v
+  # Q = -r
+
+  # P = np.diag(np.asarray([1,1000,1])); 
+  Q = np.dot(P,-r).reshape(m,)
+  print("haoyu debug, P=\n",P)
+  print("haoyu debug, Q=\n",Q)
   
   """ CVXPY solvers """
   # # define v as a cp variable of length m
@@ -3152,7 +3172,7 @@ def fun_CG_MIMO(r, Hv, hv):
 
   """ qpsolvers """
   qps_P = P.astype(np.double)
-  qps_q = -r.astype(np.double)
+  qps_q = Q.astype(np.double)
   qps_G = Hv.astype(np.double)
   qps_h = hv.astype(np.double)
   qps_A = Cv.reshape(1,-1).astype(np.double)

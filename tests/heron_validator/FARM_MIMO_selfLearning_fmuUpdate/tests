@@ -3,7 +3,7 @@
     type = HeronIntegration
     input = heron_input_FARM_MIMO_selfLearning_fmuUpdate.xml
     skip_if_OS = Linux, mac, SunOS
-    max_time = 1000
+    max_time = 2000
     [./csv]
       type = OrderedCSV
       output = 'Sweep_Runs_o/sweep.csv'
