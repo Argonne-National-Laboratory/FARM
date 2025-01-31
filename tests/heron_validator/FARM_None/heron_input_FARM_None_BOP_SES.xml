@@ -87,16 +87,11 @@
       </economics>
     </Component>
     <Component name="electr_market">
-      <demands resource="electricity" dispatch="dependent">
+      <demands resource="electricity" dispatch="fixed">
         <capacity resource="electricity">   
-          <fixed_value>-1e5</fixed_value>
-          <!-- <ARMA variable="Signal">flex</ARMA> -->
-          <!-- <multiplier>1</multiplier> -->
-        </capacity>
-        <minimum>
           <ARMA variable="Signal">flex</ARMA>
           <multiplier>1</multiplier>
-        </minimum>
+        </capacity>
       </demands>
       <economics>
         <lifetime>30</lifetime>
